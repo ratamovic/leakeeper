@@ -14,3 +14,8 @@ allprojects {
         mavenCentral()
     }
 }
+
+ext.compileSdkVersion=19
+ext.buildToolsVersion="19.0.3"
+ext.minSdkVersion=9
+ext.targetSdkVersion=19
