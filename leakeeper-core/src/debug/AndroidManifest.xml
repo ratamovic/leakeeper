@@ -1,0 +1,7 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+          package="com.codexperiments.leakeeper">
+    <application>
+        <!-- For tests only. It doesn't seem possible to declare test activities in androidTest directory -->
+        <activity android:name=".test.TaskActivity"/>
+    </application>
+</manifest>
