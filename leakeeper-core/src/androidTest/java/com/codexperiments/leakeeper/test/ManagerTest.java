@@ -4,9 +4,9 @@ import android.test.ActivityInstrumentationTestCase2;
 import android.util.Log;
 import android.support.v4.app.FragmentActivity;
 
-public class TaskManagerTest extends ActivityInstrumentationTestCase2<TaskActivity> {
-    public TaskManagerTest() {
-        super(TaskActivity.class);
+public class ManagerTest extends ActivityInstrumentationTestCase2<TestActivity> {
+    public ManagerTest() {
+        super(TestActivity.class);
     }
 
     @Override
