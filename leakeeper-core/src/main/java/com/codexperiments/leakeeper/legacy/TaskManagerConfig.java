@@ -1,6 +1,6 @@
-package com.codexperiments.leakeeper;
+package com.codexperiments.leakeeper.legacy;
 
-import com.codexperiments.leakeeper.handler.Task;
+import com.codexperiments.leakeeper.legacy.handler.Task;
 
 import java.util.concurrent.ExecutorService;
 

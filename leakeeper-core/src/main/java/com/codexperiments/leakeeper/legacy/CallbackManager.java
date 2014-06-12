@@ -1,11 +1,11 @@
-package com.codexperiments.leakeeper;
+package com.codexperiments.leakeeper.legacy;
 
-import com.codexperiments.leakeeper.handler.*;
+import com.codexperiments.leakeeper.legacy.handler.*;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
-import static com.codexperiments.leakeeper.AndroidTaskManagerException.*;
+import static com.codexperiments.leakeeper.legacy.AndroidTaskManagerException.*;
 
 /**
  * TODO Remove TaskId but create a TaskEquality helper class.

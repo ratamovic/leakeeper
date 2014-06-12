@@ -1,6 +1,6 @@
-package com.codexperiments.leakeeper;
+package com.codexperiments.leakeeper.legacy;
 
-import com.codexperiments.leakeeper.handler.TaskResult;
+import com.codexperiments.leakeeper.legacy.handler.TaskResult;
 
 public class DefaultTaskDescriptorFactory implements TaskDescriptorFactory {
     private LockingStrategy mLockingStrategy;

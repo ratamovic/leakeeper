@@ -1,8 +1,7 @@
-package com.codexperiments.leakeeper;
+package com.codexperiments.leakeeper.legacy;
 
 import android.os.Handler;
 import android.os.Looper;
-import com.codexperiments.leakeeper.TaskScheduler;
 
 public class AndroidUITaskScheduler implements TaskScheduler {
     private Handler mUIQueue;

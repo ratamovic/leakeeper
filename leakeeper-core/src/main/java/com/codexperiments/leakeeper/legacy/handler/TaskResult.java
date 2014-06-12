@@ -1,4 +1,4 @@
-package com.codexperiments.leakeeper.handler;
+package com.codexperiments.leakeeper.legacy.handler;
 
 public interface TaskResult<TResult> extends TaskHandler {
     /**

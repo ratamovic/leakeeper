@@ -1,15 +1,15 @@
-package com.codexperiments.leakeeper;
+package com.codexperiments.leakeeper.legacy;
 
-import com.codexperiments.leakeeper.handler.Task;
-import com.codexperiments.leakeeper.handler.TaskIdentifiable;
-import com.codexperiments.leakeeper.handler.TaskNotifier;
-import com.codexperiments.leakeeper.handler.TaskResult;
+import com.codexperiments.leakeeper.legacy.handler.Task;
+import com.codexperiments.leakeeper.legacy.handler.TaskIdentifiable;
+import com.codexperiments.leakeeper.legacy.handler.TaskNotifier;
+import com.codexperiments.leakeeper.legacy.handler.TaskResult;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 
-import static com.codexperiments.leakeeper.AndroidTaskManagerException.internalError;
-import static com.codexperiments.leakeeper.AndroidTaskManagerException.progressCalledAfterTaskFinished;
+import static com.codexperiments.leakeeper.legacy.AndroidTaskManagerException.internalError;
+import static com.codexperiments.leakeeper.legacy.AndroidTaskManagerException.progressCalledAfterTaskFinished;
 
 /**
  * Wrapper class that contains all the information about the task to execute.

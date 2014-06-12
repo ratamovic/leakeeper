@@ -1,4 +1,4 @@
-package com.codexperiments.leakeeper.handler;
+package com.codexperiments.leakeeper.legacy.handler;
 
 /**
  * TODO Pass a progression object.

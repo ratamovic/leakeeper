@@ -1,6 +1,6 @@
-package com.codexperiments.leakeeper.handler;
+package com.codexperiments.leakeeper.legacy.handler;
 
-import com.codexperiments.leakeeper.TaskId;
+import com.codexperiments.leakeeper.legacy.TaskId;
 
 public interface TaskIdentifiable
 {

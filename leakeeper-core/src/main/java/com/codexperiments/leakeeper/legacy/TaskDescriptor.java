@@ -1,6 +1,7 @@
-package com.codexperiments.leakeeper;
+package com.codexperiments.leakeeper.legacy;
 
-import com.codexperiments.leakeeper.handler.*;
+import com.codexperiments.leakeeper.BuildConfig;
+import com.codexperiments.leakeeper.legacy.handler.*;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -8,9 +9,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.locks.Lock;
 
-import static com.codexperiments.leakeeper.AndroidTaskManagerException.emitterIdCouldNotBeDetermined;
-import static com.codexperiments.leakeeper.AndroidTaskManagerException.internalError;
-import static com.codexperiments.leakeeper.AndroidTaskManagerException.taskExecutedFromUnexecutedTask;
+import static com.codexperiments.leakeeper.legacy.AndroidTaskManagerException.emitterIdCouldNotBeDetermined;
+import static com.codexperiments.leakeeper.legacy.AndroidTaskManagerException.internalError;
+import static com.codexperiments.leakeeper.legacy.AndroidTaskManagerException.taskExecutedFromUnexecutedTask;
 
 /**
  * Contains all the information necessary to restore all the emitters (even parent emitters) of a task. Once prepareToRun() is
