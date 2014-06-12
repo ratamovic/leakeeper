@@ -2,15 +2,8 @@ package com.codexperiments.leakeeper.test;
 
 import static java.lang.Thread.*;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
-
 import android.app.Activity;
-import android.app.ActivityManager;
-import android.app.ActivityManager.RunningServiceInfo;
 import android.app.Application;
-import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
@@ -18,9 +11,8 @@ import android.content.res.Resources;
 import android.test.ActivityInstrumentationTestCase2;
 
 public class TestCase<TActivity extends Activity> extends ActivityInstrumentationTestCase2<TActivity> {
+    static Activity sCurrentActivity;
     private volatile Application mApplication;
-    private Class<?> mActivityClass;
-    private TActivity mCurrentActivity;
 
     public TestCase(Class<TActivity> pActivityClass) {
         super(pActivityClass);
@@ -70,14 +62,19 @@ public class TestCase<TActivity extends Activity> extends ActivityInstrumentatio
 
     @Override
     public TActivity getActivity() {
-        return mCurrentActivity;
+        throw new UnsupportedOperationException();
+    }
+
+    public Activity getCurrentActivity() {
+        return sCurrentActivity;
     }
 
     public TActivity createActivity() {
-        if (mCurrentActivity != null) throw new RuntimeException("Activity already created");
+        if (sCurrentActivity != null) throw new RuntimeException("Activity already created");
 
-        mCurrentActivity = super.getActivity();
-        return mCurrentActivity;
+        TActivity currentActivity = super.getActivity();
+        sCurrentActivity = currentActivity;
+        return currentActivity;
     }
 
     public TActivity createActivity(Intent pIntent) {
@@ -88,7 +85,7 @@ public class TestCase<TActivity extends Activity> extends ActivityInstrumentatio
     protected TActivity terminateActivity(TActivity pActivity) throws InterruptedException {
         pActivity.finish();
         setActivity(null);
-        mCurrentActivity = null;
+        sCurrentActivity = null;
         return null;
     }
 

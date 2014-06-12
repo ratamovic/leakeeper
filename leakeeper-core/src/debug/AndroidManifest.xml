@@ -2,6 +2,6 @@
           package="com.codexperiments.leakeeper">
     <application>
         <!-- For tests only. It doesn't seem possible to declare test activities in androidTest directory -->
-        <activity android:name=".test.TaskActivity"/>
+        <activity android:name=".test.TestActivity"/>
     </application>
 </manifest>
