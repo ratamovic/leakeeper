@@ -1,4 +1,4 @@
-package com.codexperiments.leakeeper.legacy;
+package com.codexperiments.leakeeper;
 
 import android.os.Process;
 

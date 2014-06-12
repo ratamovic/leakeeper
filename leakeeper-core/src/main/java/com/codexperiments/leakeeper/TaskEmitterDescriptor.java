@@ -1,10 +1,10 @@
 package com.codexperiments.leakeeper;
 
-import com.codexperiments.leakeeper.legacy.handler.TaskResult;
+import com.codexperiments.leakeeper.handler.TaskResult;
 
 import java.lang.reflect.Field;
 
-import static com.codexperiments.leakeeper.legacy.AndroidTaskManagerException.internalError;
+import static com.codexperiments.leakeeper.AndroidTaskManagerException.internalError;
 
 /**
  * Contains all the information necessary to restore a single emitter on a task handler (its field and its generated Id).

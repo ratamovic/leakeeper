@@ -1,4 +1,4 @@
-package com.codexperiments.leakeeper.legacy;
+package com.codexperiments.leakeeper;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;

@@ -1,7 +1,6 @@
 package com.codexperiments.leakeeper;
 
-import com.codexperiments.leakeeper.legacy.AndroidTaskManagerException;
-import com.codexperiments.leakeeper.legacy.handler.*;
+import com.codexperiments.leakeeper.handler.*;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -9,9 +8,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.locks.Lock;
 
-import static com.codexperiments.leakeeper.legacy.AndroidTaskManagerException.emitterIdCouldNotBeDetermined;
-import static com.codexperiments.leakeeper.legacy.AndroidTaskManagerException.internalError;
-import static com.codexperiments.leakeeper.legacy.AndroidTaskManagerException.taskExecutedFromUnexecutedTask;
+import static com.codexperiments.leakeeper.AndroidTaskManagerException.emitterIdCouldNotBeDetermined;
+import static com.codexperiments.leakeeper.AndroidTaskManagerException.internalError;
+import static com.codexperiments.leakeeper.AndroidTaskManagerException.taskExecutedFromUnexecutedTask;
 
 /**
  * Contains all the information necessary to restore all the emitters (even parent emitters) of a task. Once prepareToRun() is
@@ -34,9 +33,9 @@ class TaskDescriptor<TParam, TProgress, TResult> {
 
 
     // TODO Boolean option to indicate if we should look for emitter or if task is not "managed".
-    public TaskDescriptor(TaskResult<TResult> pTaskResult, TaskResolver pResolver, LockingStrategy pLockingStrategy) {
+    public TaskDescriptor(TaskResult<TResult> pTaskResult, TaskResolver pTaskResolver, LockingStrategy pLockingStrategy) {
         mTaskResult = pTaskResult;
-        mResolver = pResolver;
+        mResolver = pTaskResolver;
         mLockingStrategy = pLockingStrategy;
         mEmitterDescriptors = null;
         mParentDescriptors = null;

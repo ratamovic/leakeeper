@@ -1,7 +1,7 @@
-package com.codexperiments.leakeeper.legacy;
+package com.codexperiments.leakeeper;
 
-import com.codexperiments.leakeeper.legacy.handler.Task;
-import com.codexperiments.leakeeper.legacy.handler.TaskResult;
+import com.codexperiments.leakeeper.handler.Task;
+import com.codexperiments.leakeeper.handler.TaskResult;
 
 public class AndroidTaskManagerException extends RuntimeException {
     private static final long serialVersionUID = 1075178581665280357L;
