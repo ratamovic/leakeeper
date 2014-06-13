@@ -412,7 +412,9 @@ public class AndroidTaskManager implements TaskManager {
          */
         public void run() {
             try {
-                mResult = mTask.onProcess(mParam, this);
+                // TODO XXX FIXME
+                Thread.sleep(2000, 0);
+                mResult = null;
             } catch (final Exception eException) {
                 mThrowable = eException;
             } finally {

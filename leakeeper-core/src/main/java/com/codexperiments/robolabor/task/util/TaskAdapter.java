@@ -29,11 +29,6 @@ public class TaskAdapter<TParam, TProgress, TResult>
     }
 
     @Override
-    public TResult onProcess(TParam pParam, TaskNotifier<TProgress> pNotifier) throws Exception {
-        return null;
-    }
-
-    @Override
     public void onProgress(TProgress pProgress) {
     }
 
