@@ -16,7 +16,7 @@ import com.codexperiments.robolabor.task.TaskRef;
 import com.codexperiments.robolabor.task.handler.TaskNotifier;
 import com.codexperiments.robolabor.task.util.ProgressTask;
 
-public class BackgroundTask implements ProgressTask<Integer, Integer, Integer> {
+public class BackgroundTask implements ProgressTask<Integer, Integer> {
     public static final int TASK_STEP_COUNT = 5;
     public static final int TASK_STEP_DURATION_MS = 1000;
     // At least one test must wait until this delay has ended. So please avoid increasing it except for debugging purpose.

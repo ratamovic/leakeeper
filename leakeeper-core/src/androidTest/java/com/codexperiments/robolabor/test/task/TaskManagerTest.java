@@ -18,7 +18,6 @@ import com.codexperiments.robolabor.task.android.AndroidTaskManager;
 import com.codexperiments.robolabor.task.android.AndroidTaskManagerConfig;
 import com.codexperiments.robolabor.task.android.AndroidTaskManagerException;
 import com.codexperiments.robolabor.task.handler.Task;
-import com.codexperiments.robolabor.task.handler.TaskNotifier;
 import com.codexperiments.robolabor.task.handler.TaskResult;
 import com.codexperiments.robolabor.test.common.TestCase;
 import com.codexperiments.robolabor.test.task.helper.BackgroundTask;
@@ -65,42 +64,6 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
         TaskManagerConfig lConfig = new AndroidTaskManagerConfig(getApplication().getApplication());
         mTaskManager = new AndroidTaskManager(getApplication().getApplication(), lConfig);
         getApplicationContext().registerManager(mTaskManager);
-    }
-
-    @UiThreadTest
-    public void testAzertyuiop() throws InterruptedException {
-        AtomicInteger lResult = new AtomicInteger();
-        final TaskRef<Integer> lTaskRef = new TaskRef<Integer>(0);
-        mTaskManager.when(new Task<Integer, Integer, Integer>() {
-            Integer lTaskResult = mTaskResult;
-
-            public void onFail(Throwable pThrowable) {
-            }
-
-            public void onFinish(Integer pResult) {
-                Log.e("", "======" + pResult);
-            }
-
-            public Integer onProcess(Integer pParam, TaskNotifier<Integer> pNotifier) throws Exception {
-                return lTaskResult;
-            }
-        }).pipe(new Task<Integer, Void, Long>() {
-            public void onFail(Throwable pThrowable) {
-            }
-
-            public void onFinish(Long pResult) {
-                Log.e("", "======" + pResult);
-            }
-
-            public Long onProcess(Integer pParam, TaskNotifier<Void> pNotifier) throws Exception {
-                return pParam.longValue();
-            }
-        }).execute();
-
-        lTaskRef.toString();
-
-        // assertThat(lInitialActivity.getTaskResult(), equalTo(mTaskResult));
-        // assertThat(lInitialActivity.getTaskException(), nullValue());
     }
 
     public void testExecute_inner_unmanaged_persisting() throws InterruptedException {
@@ -622,11 +585,7 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
 
     public void testExecute_failure_notCalledFromUIThread() throws InterruptedException {
         try {
-            mTaskManager.execute(new Task<Void, Void, Integer>() {
-
-                public Integer onProcess(Void pParam, TaskNotifier<Void> pNotifier) throws Exception {
-                    return null;
-                }
+            mTaskManager.execute(new Task<Void, Integer>() {
 
                 public void onFinish(Integer pTaskResult) {
                 }

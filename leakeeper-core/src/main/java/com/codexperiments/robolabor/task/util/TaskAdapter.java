@@ -2,15 +2,13 @@ package com.codexperiments.robolabor.task.util;
 
 import com.codexperiments.robolabor.task.handler.Task;
 import com.codexperiments.robolabor.task.handler.TaskIdentifiable;
-import com.codexperiments.robolabor.task.handler.TaskNotifier;
-import com.codexperiments.robolabor.task.handler.TaskProgress;
 import com.codexperiments.robolabor.task.handler.TaskResult;
 import com.codexperiments.robolabor.task.handler.TaskStart;
 import com.codexperiments.robolabor.task.id.TaskId;
 import com.codexperiments.robolabor.task.id.UniqueTaskId;
 
-public class TaskAdapter<TParam, TProgress, TResult>
-    implements Task<TParam, TProgress, TResult>, TaskResult<TResult>, TaskStart, TaskIdentifiable, TaskProgress<TProgress>
+public class TaskAdapter<TParam, TResult>
+    implements Task<TParam, TResult>, TaskResult<TResult>, TaskStart, TaskIdentifiable
 {
     private TaskId mId;
 
@@ -26,10 +24,6 @@ public class TaskAdapter<TParam, TProgress, TResult>
 
     @Override
     public void onStart(boolean pIsRestored) {
-    }
-
-    @Override
-    public void onProgress(TProgress pProgress) {
     }
 
     @Override

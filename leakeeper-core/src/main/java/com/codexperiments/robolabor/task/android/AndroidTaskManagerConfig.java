@@ -113,12 +113,12 @@ public class AndroidTaskManagerConfig implements TaskManagerConfig {
     }
 
     @Override
-    public boolean keepResultOnHold(Task<?, ?, ?> pTask) {
+    public boolean keepResultOnHold(Task<?, ?> pTask) {
         return false;
     }
 
     @Override
-    public ExecutorService resolveExecutor(Task<?, ?, ?> pTask) {
+    public ExecutorService resolveExecutor(Task<?, ?> pTask) {
         return mSerialExecutor;
     }
 
