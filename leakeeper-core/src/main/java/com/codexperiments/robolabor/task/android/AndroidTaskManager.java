@@ -171,12 +171,6 @@ public class AndroidTaskManager implements TaskManager {
         }
     }
 
-    public void gogogo(TaskContainer<?, ?> pContainer) {
-        if (pContainer != null) {
-            mConfig.resolveExecutor(pContainer.mTask).execute(pContainer);
-        }
-    }
-
     @Override
     public <TParam, TResult> TaskRef<TResult> execute(Task<TParam, TResult> pTask,
                                                                  TaskResult<TResult> pTaskResult)
@@ -294,8 +288,6 @@ public class AndroidTaskManager implements TaskManager {
         private boolean mRunning;
         private boolean mFinished;
 
-        private TaskContainer<?, ?> mPipeContainer;
-
         public TaskContainer(Task<TParam, TResult> pTask, TaskScheduler pScheduler) {
             super();
             mTask = pTask;
@@ -370,20 +362,20 @@ public class AndroidTaskManager implements TaskManager {
          * Run background task on Executor-thread
          */
         public void run() {
-            try {
-                // TODO XXX FIXME
-                Thread.sleep(2000, 0);
-                mResult = null;
-            } catch (final Exception eException) {
-                mThrowable = eException;
-            } finally {
-                mScheduler.schedule(new Runnable() {
-                    public void run() {
-                        mRunning = false;
-                        finish();
-                    }
-                });
-            }
+//            try {
+//                // TODO XXX FIXME
+//                Thread.sleep(2000, 0);
+//                mResult = null;
+//            } catch (final Exception eException) {
+//                mThrowable = eException;
+//            } finally {
+//                mScheduler.schedule(new Runnable() {
+//                    public void run() {
+//                        mRunning = false;
+//                        finish();
+//                    }
+//                });
+//            }
         }
 
         /**
@@ -465,7 +457,6 @@ public class AndroidTaskManager implements TaskManager {
             mFinished = lDescriptor.onFinish(mResult, mThrowable, mConfig.keepResultOnHold(mTask));
             if (mFinished) {
                 notifyFinished(this);
-                gogogo(mPipeContainer);
             }
             return mFinished;
         }

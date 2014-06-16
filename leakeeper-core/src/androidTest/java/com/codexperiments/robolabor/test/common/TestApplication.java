@@ -37,6 +37,7 @@ public class TestApplication implements TestApplicationContext.Provider
     {
         super();
         mApplicationContext = new TestApplicationContext(pApplication);
+        mApplication = pApplication;
         sInstance = this;
     }
 

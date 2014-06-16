@@ -56,7 +56,6 @@ public class BackgroundTask implements Task<Integer, Integer> {
         mTaskFinished = new CountDownLatch(1);
     }
 
-//    @Override
 //    public Integer onProcess(Integer pParam) throws Exception {
 //        assertThat(mTaskFinished.getCount(), equalTo(1l)); // Ensure task is executed only once.
 //        // We have two cases here: either we loop until step by step is over or until we have performed all iterations.
