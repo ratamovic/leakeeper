@@ -15,7 +15,7 @@ public class BackgroundTask implements Task<Integer, Integer> {
     // At least one test must wait until this delay has ended. So please avoid increasing it except for debugging purpose.
     public static final int TASK_TIMEOUT_MS = 10000;
 
-    private TaskRef<Integer> mTaskRef;
+    private Task<Integer, Integer> mTaskRef;
     private Boolean mCheckEmitterNull;
     private boolean mStepByStep;
     private int mStepCounter;
@@ -185,11 +185,11 @@ public class BackgroundTask implements Task<Integer, Integer> {
         return mStepByStep;
     }
 
-    public TaskRef<Integer> getTaskRef() {
+    public Task<Integer, Integer> getTaskRef() {
         return mTaskRef;
     }
 
-    public void setTaskRef(TaskRef<Integer> pTaskRef) {
+    public void setTaskRef(Task<Integer, Integer> pTaskRef) {
         mTaskRef = pTaskRef;
     }
 
@@ -200,6 +200,11 @@ public class BackgroundTask implements Task<Integer, Integer> {
      */
     public Object getEmitter() {
         return null;
+    }
+
+    @Override
+    public TaskRef<Integer> toRef() {
+        return null; // TODO XXX FIXME
     }
 
     @Override

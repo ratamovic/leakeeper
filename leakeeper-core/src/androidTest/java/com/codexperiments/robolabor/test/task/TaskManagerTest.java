@@ -507,11 +507,14 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
     public void testExecute_failure_notCalledFromUIThread() throws InterruptedException {
         try {
             mTaskManager.execute(new Task<Void, Integer>() {
-
                 public void onFinish(Integer pTaskResult) {
                 }
 
                 public void onFail(Throwable pTaskException) {
+                }
+
+                public TaskRef<Integer> toRef() {
+                    return null;
                 }
             });
             fail();

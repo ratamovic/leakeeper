@@ -136,7 +136,7 @@ public class AndroidTaskManager implements TaskManager {
     }
 
     @Override
-    public <TParam, TResult> TaskRef<TResult> execute(Task<TParam, TResult> pTask) {
+    public <TParam, TResult> Task<TParam, TResult> execute(Task<TParam, TResult> pTask) {
         return execute(pTask, pTask);
     }
 
@@ -172,16 +172,14 @@ public class AndroidTaskManager implements TaskManager {
     }
 
     @Override
-    public <TParam, TResult> TaskRef<TResult> execute(Task<TParam, TResult> pTask,
-                                                                 TaskResult<TResult> pTaskResult)
+    public <TParam, TResult> Task<TParam, TResult> execute(Task<TParam, TResult> pTask, TaskResult<TResult> pTaskResult)
     {
         if (pTask == null) throw new NullPointerException("Task is null");
         if (pTaskResult == null) throw new NullPointerException("TaskResult is null");
         mLockingStrategy.checkCallIsAllowed();
 
         // Create a container to run the task.
-        TaskContainer<TParam, TResult> lContainer = new TaskContainer<TParam, TResult>(pTask,
-                                                                                                             mDefaultScheduler);
+        TaskContainer<TParam, TResult> lContainer = new TaskContainer<TParam, TResult>(pTask, mDefaultScheduler);
         // Save the task before running it.
         // Note that it is safe to add the task to the container since it is an empty stub that shouldn't create any side-effect.
         if (mContainers.add(lContainer)) {
@@ -190,7 +188,7 @@ public class AndroidTaskManager implements TaskManager {
             try {
                 TaskRef<TResult> lTaskRef = lContainer.prepareToRun(pTaskResult);
                 mConfig.resolveExecutor(pTask).execute(lContainer);
-                return lTaskRef;
+                return new AndroidTaskWrapper<TParam, TResult>(lTaskRef);
             }
             // If preparation operation fails, try to leave the manager in a consistent state without memory leaks.
             catch (RuntimeException eRuntimeException) {

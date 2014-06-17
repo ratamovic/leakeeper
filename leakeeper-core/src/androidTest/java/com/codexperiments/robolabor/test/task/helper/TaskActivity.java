@@ -93,6 +93,7 @@ public class TaskActivity extends FragmentActivity {
         runOnUiThread(new Runnable() {
             public void run() {
                 lTask.setTaskRef(mTaskManager.execute(lTask));
+                mTaskManager.execute(lTask);
             }
         });
         return lTask;
@@ -103,6 +104,7 @@ public class TaskActivity extends FragmentActivity {
         runOnUiThread(new Runnable() {
             public void run() {
                 lTask.setTaskRef(mTaskManager.execute(lTask));
+                mTaskManager.execute(lTask);
             }
         });
         return lTask;
@@ -112,7 +114,7 @@ public class TaskActivity extends FragmentActivity {
         final BackgroundTaskResult lResult = new InnerResult(mCheckEmitterNull);
         runOnUiThread(new Runnable() {
             public void run() {
-                boolean lBound = mTaskManager.rebind(pBackgroundTask.getTaskRef(), lResult);
+                boolean lBound = mTaskManager.rebind(pBackgroundTask.getTaskRef().toRef(), lResult);
                 assertThat(lBound, equalTo(expectTaskBound));
             }
         });

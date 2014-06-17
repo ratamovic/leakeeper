@@ -73,9 +73,9 @@ public interface TaskManager {
 
     void unmanage(Object pEmitter);
 
-    <TParam, TResult> TaskRef<TResult> execute(Task<TParam, TResult> pTask);
+    <TParam, TResult> Task<TParam, TResult> execute(Task<TParam, TResult> pTask);
 
-    <TParam, TResult> TaskRef<TResult> execute(Task<TParam, TResult> pTask, TaskResult<TResult> pTaskResult);
+    <TParam, TResult> Task<TParam, TResult> execute(Task<TParam, TResult> pTask, TaskResult<TResult> pTaskResult);
 
     <TParam, TResult> boolean rebind(TaskRef<TResult> pTaskRef, TaskResult<TResult> pTaskResult);
 
