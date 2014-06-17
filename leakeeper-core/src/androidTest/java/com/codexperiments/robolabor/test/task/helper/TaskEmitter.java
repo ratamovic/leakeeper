@@ -56,7 +56,7 @@ public class TaskEmitter {
         final BackgroundTask lBackgroundTask = new InnerBackgroundTask(pTaskResult, mCheckEmitterNull, mStepByStep);
         mUIThread.post(new Runnable() {
             public void run() {
-                mTaskManager.execute(lBackgroundTask);
+                lBackgroundTask.setTaskRef(mTaskManager.execute(lBackgroundTask));
             }
         });
         return lBackgroundTask;

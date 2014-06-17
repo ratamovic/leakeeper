@@ -77,7 +77,7 @@ public class TaskFragment extends Fragment {
         final BackgroundTask lInnerBackgroundTask = new InnerBackgroundTask(pTaskResult, mCheckEmitterNull, mStepByStep);
         getActivity().runOnUiThread(new Runnable() {
             public void run() {
-                mTaskManager.execute(lInnerBackgroundTask);
+                lInnerBackgroundTask.setTaskRef(mTaskManager.execute(lInnerBackgroundTask));
             }
         });
         return lInnerBackgroundTask;

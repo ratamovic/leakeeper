@@ -7,7 +7,6 @@ import static com.codexperiments.robolabor.task.android.AndroidTaskManagerExcept
 import static com.codexperiments.robolabor.task.android.AndroidTaskManagerException.invalidEmitterId;
 import static com.codexperiments.robolabor.task.android.AndroidTaskManagerException.mustBeExecutedFromUIThread;
 import static com.codexperiments.robolabor.task.android.AndroidTaskManagerException.notCalledFromTask;
-import static com.codexperiments.robolabor.task.android.AndroidTaskManagerException.progressCalledAfterTaskFinished;
 import static com.codexperiments.robolabor.task.android.AndroidTaskManagerException.taskExecutedFromUnexecutedTask;
 import static com.codexperiments.robolabor.task.android.AndroidTaskManagerException.unmanagedEmittersNotAllowed;
 
@@ -188,7 +187,7 @@ public class AndroidTaskManager implements TaskManager {
             try {
                 TaskRef<TResult> lTaskRef = lContainer.prepareToRun(pTaskResult);
                 mConfig.resolveExecutor(pTask).execute(lContainer);
-                return new AndroidTaskWrapper<TParam, TResult>(lTaskRef);
+                return new AndroidTaskWrapper<>(lTaskRef, pTaskResult);
             }
             // If preparation operation fails, try to leave the manager in a consistent state without memory leaks.
             catch (RuntimeException eRuntimeException) {

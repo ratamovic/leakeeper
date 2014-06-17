@@ -7,10 +7,8 @@ import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.junit.Assert.assertThat;
 
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import android.test.UiThreadTest;
-import android.util.Log;
 
 import com.codexperiments.robolabor.task.TaskManagerConfig;
 import com.codexperiments.robolabor.task.TaskRef;
@@ -24,7 +22,6 @@ import com.codexperiments.robolabor.test.task.helper.BackgroundTask;
 import com.codexperiments.robolabor.test.task.helper.BackgroundTaskResult;
 import com.codexperiments.robolabor.test.task.helper.TaskActivity;
 import com.codexperiments.robolabor.test.task.helper.TaskActivity.HierarchicalTask;
-import com.codexperiments.robolabor.test.task.helper.TaskActivity.HierarchicalTask_CorruptionBug;
 import com.codexperiments.robolabor.test.task.helper.TaskEmitter;
 import com.codexperiments.robolabor.test.task.helper.TaskFragment;
 
@@ -213,9 +210,13 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
 
     public void testExecute_inner_hierarchical_destroyed() throws InterruptedException {
         TaskActivity lInitialActivity = getActivity(TaskActivity.dying());
-        HierarchicalTask lTask = lInitialActivity.runHierarchicalTask(mTaskResult);
+        final HierarchicalTask lTask = lInitialActivity.runHierarchicalTask(mTaskResult);
         lInitialActivity = terminateActivity(lInitialActivity);
-        lTask.onFinish(mTaskResult);
+        getInstrumentation().runOnMainSync(new Runnable() {
+            public void run() {
+                lTask.getTaskRef().onFinish(mTaskResult);
+            }
+        });
         assertThat(lTask.awaitFinished(), equalTo(true));
         assertThat(lTask.getInnerTask().awaitFinished(), equalTo(true));
 

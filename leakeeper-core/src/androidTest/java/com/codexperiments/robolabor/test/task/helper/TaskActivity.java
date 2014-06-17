@@ -93,7 +93,6 @@ public class TaskActivity extends FragmentActivity {
         runOnUiThread(new Runnable() {
             public void run() {
                 lTask.setTaskRef(mTaskManager.execute(lTask));
-                mTaskManager.execute(lTask);
             }
         });
         return lTask;
@@ -104,7 +103,6 @@ public class TaskActivity extends FragmentActivity {
         runOnUiThread(new Runnable() {
             public void run() {
                 lTask.setTaskRef(mTaskManager.execute(lTask));
-                mTaskManager.execute(lTask);
             }
         });
         return lTask;
@@ -125,7 +123,7 @@ public class TaskActivity extends FragmentActivity {
         final HierarchicalTask lTask = new HierarchicalTask(pTaskResult, mCheckEmitterNull, mStepByStep);
         runOnUiThread(new Runnable() {
             public void run() {
-                mTaskManager.execute(lTask);
+                lTask.setTaskRef(mTaskManager.execute(lTask));
             }
         });
         return lTask;
@@ -135,7 +133,7 @@ public class TaskActivity extends FragmentActivity {
         final BackgroundTask lTask = new InnerTaskWithId(pTaskId, pTaskResult, mCheckEmitterNull, mStepByStep);
         runOnUiThread(new Runnable() {
             public void run() {
-                mTaskManager.execute(lTask);
+                lTask.setTaskRef(mTaskManager.execute(lTask));
             }
         });
         return lTask;
@@ -145,7 +143,7 @@ public class TaskActivity extends FragmentActivity {
         final BackgroundTask lTask = new StaticTask(pTaskResult, null, mStepByStep);
         runOnUiThread(new Runnable() {
             public void run() {
-                mTaskManager.execute(lTask);
+                lTask.setTaskRef(mTaskManager.execute(lTask));
             }
         });
         return lTask;
@@ -155,7 +153,7 @@ public class TaskActivity extends FragmentActivity {
         final BackgroundTask lTask = new BackgroundTask(pTaskResult, null, false);
         runOnUiThread(new Runnable() {
             public void run() {
-                mTaskManager.execute(lTask);
+                lTask.setTaskRef(mTaskManager.execute(lTask));
             }
         });
         return lTask;
@@ -164,7 +162,7 @@ public class TaskActivity extends FragmentActivity {
     public void rerunTask(final BackgroundTask pBackgroundTask) {
         runOnUiThread(new Runnable() {
             public void run() {
-                mTaskManager.execute(pBackgroundTask);
+                pBackgroundTask.setTaskRef(mTaskManager.execute(pBackgroundTask));
             }
         });
     }
@@ -251,7 +249,13 @@ public class TaskActivity extends FragmentActivity {
                     super.onFinish((TaskActivity.this != null) ? ((pTaskResult << 8) | mTaskResult) : pTaskResult);
                 }
             };
-            mTaskManager.execute(mInnerTask);
+            mInnerTask.setTaskRef(mTaskManager.execute(mInnerTask));
+            TaskActivity.this.runOnUiThread(new Runnable() {
+                public void run() {
+                    mInnerTask.getTaskRef().onFinish(mTaskResult);
+                }
+            });
+
             super.onFinish(pTaskResult);
         }
 
@@ -299,7 +303,7 @@ public class TaskActivity extends FragmentActivity {
                                                                                         mStepByStep);
         runOnUiThread(new Runnable() {
             public void run() {
-                mTaskManager.execute(lTask);
+                lTask.setTaskRef(mTaskManager.execute(lTask));
             }
         });
         return lTask;
@@ -325,7 +329,7 @@ public class TaskActivity extends FragmentActivity {
 
         @Override
         public void onFinish(Integer pTaskResult) {
-            mTaskManager.execute(getBackgroundTask2());
+            getBackgroundTask2().setTaskRef(mTaskManager.execute(getBackgroundTask2()));
             super.onFinish(pTaskResult);
         }
 
