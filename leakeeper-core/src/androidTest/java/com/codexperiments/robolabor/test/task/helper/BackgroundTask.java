@@ -1,5 +1,6 @@
 package com.codexperiments.robolabor.test.task.helper;
 
+import android.util.Log;
 import com.codexperiments.robolabor.task.TaskRef;
 import com.codexperiments.robolabor.task.handler.Task;
 
@@ -81,7 +82,13 @@ public class BackgroundTask implements Task<Integer, Integer> {
         // Check if outer object reference has been restored (or not).
         if (mCheckEmitterNull != null) {
             if (mCheckEmitterNull) {
-                assertThat(getEmitter(), nullValue());
+                Object lEmitter = getEmitter();
+                try {
+                    Thread.sleep(1000, 0);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                assertThat(lEmitter, nullValue());
             } else {
                 assertThat(getEmitter(), not(nullValue()));
             }

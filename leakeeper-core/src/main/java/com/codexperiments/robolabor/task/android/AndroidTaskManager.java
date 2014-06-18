@@ -187,7 +187,7 @@ public class AndroidTaskManager implements TaskManager {
             try {
                 TaskRef<TResult> lTaskRef = lContainer.prepareToRun(pTaskResult);
                 mConfig.resolveExecutor(pTask).execute(lContainer);
-                return new AndroidTaskWrapper<>(lTaskRef, pTaskResult);
+                return new AndroidTaskWrapper<>(lContainer, lTaskRef, pTaskResult);
             }
             // If preparation operation fails, try to leave the manager in a consistent state without memory leaks.
             catch (RuntimeException eRuntimeException) {
@@ -268,7 +268,7 @@ public class AndroidTaskManager implements TaskManager {
     /**
      * Wrapper class that contains all the information about the task to execute.
      */
-    private class TaskContainer<TParam, TResult> implements Runnable {
+    /*private*/ class TaskContainer<TParam, TResult> implements Runnable {
         // Handlers
         private Task<TParam, TResult> mTask;
 
@@ -373,6 +373,17 @@ public class AndroidTaskManager implements TaskManager {
 //                    }
 //                });
 //            }
+        }
+        public void doFinish(TResult pResult) {
+            mRunning = false;
+            mResult = pResult;
+            finish();
+        }
+
+        public void doFail(Throwable pThrowable) {
+            mRunning = false;
+            mThrowable = pThrowable;
+            finish();
         }
 
         /**

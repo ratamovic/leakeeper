@@ -15,6 +15,8 @@ import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.test.ActivityInstrumentationTestCase2;
+import android.util.Log;
+import com.codexperiments.robolabor.test.task.helper.TaskActivity;
 
 public class TestCase<TActivity extends Activity> extends ActivityInstrumentationTestCase2<TActivity>
 {
@@ -117,6 +119,9 @@ public class TestCase<TActivity extends Activity> extends ActivityInstrumentatio
         pActivity.finish();
         setActivity(null);
         mApplication.setCurrentActivity(null);
+        if (pActivity instanceof TaskActivity) {
+            ((TaskActivity) pActivity).waitTerminated();
+        }
         return null;
     }
 

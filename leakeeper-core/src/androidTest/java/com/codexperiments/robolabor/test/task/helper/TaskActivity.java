@@ -2,15 +2,22 @@ package com.codexperiments.robolabor.test.task.helper;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
+
+import android.app.Instrumentation;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.support.v4.app.FragmentActivity;
 
+import android.util.Log;
 import android.widget.FrameLayout;
 import com.codexperiments.robolabor.task.TaskManager;
 import com.codexperiments.robolabor.task.handler.TaskIdentifiable;
 import com.codexperiments.robolabor.task.id.IntTaskId;
 import com.codexperiments.robolabor.test.common.TestApplicationContext;
+
+import java.util.concurrent.CountDownLatch;
 
 public class TaskActivity extends FragmentActivity {
     private static final int CONTENT_VIEW_ID = 111;
@@ -80,6 +87,16 @@ public class TaskActivity extends FragmentActivity {
     protected void onStop() {
         super.onStop();
         mTaskManager.unmanage(this);
+        mCountDownLatch.countDown();
+    }
+
+    CountDownLatch mCountDownLatch = new CountDownLatch(1);
+    public void waitTerminated() {
+        try {
+            mCountDownLatch.await();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
@@ -242,7 +259,7 @@ public class TaskActivity extends FragmentActivity {
         }
 
         @Override
-        public void onFinish(Integer pTaskResult) {
+        public void onFinish(final Integer pTaskResult) {
             mInnerTask = new InnerTask(pTaskResult + 1, getCheckEmitterNull(), getStepByStep()) {
                 @Override
                 public void onFinish(Integer pTaskResult) {
@@ -250,9 +267,9 @@ public class TaskActivity extends FragmentActivity {
                 }
             };
             mInnerTask.setTaskRef(mTaskManager.execute(mInnerTask));
-            TaskActivity.this.runOnUiThread(new Runnable() {
+            new Handler(Looper.getMainLooper()).post(new Runnable() {
                 public void run() {
-                    mInnerTask.getTaskRef().onFinish(mTaskResult);
+                    mInnerTask.getTaskRef().onFinish(pTaskResult + 1);
                 }
             });
 
