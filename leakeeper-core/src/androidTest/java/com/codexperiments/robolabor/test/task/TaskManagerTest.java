@@ -212,7 +212,6 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
         TaskActivity lInitialActivity = getActivity(TaskActivity.dying());
         final HierarchicalTask lTask = lInitialActivity.runHierarchicalTask(mTaskResult);
         lInitialActivity = terminateActivity(lInitialActivity);
-        garbageCollect();
         getInstrumentation().runOnMainSync(new Runnable() {
             public void run() {
                 lTask.getTaskRef().onFinish(mTaskResult);
