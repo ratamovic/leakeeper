@@ -267,11 +267,11 @@ public class TaskActivity extends FragmentActivity {
                 }
             };
             mInnerTask.setTaskRef(mTaskManager.execute(mInnerTask));
-            new Handler(Looper.getMainLooper()).post(new Runnable() {
+            new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
                 public void run() {
                     mInnerTask.getTaskRef().onFinish(pTaskResult + 1);
                 }
-            });
+            }, 1000);
 
             super.onFinish(pTaskResult);
         }
