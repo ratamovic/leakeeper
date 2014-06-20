@@ -10,6 +10,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import android.test.UiThreadTest;
 
+import android.util.Log;
 import com.codexperiments.robolabor.task.TaskManagerConfig;
 import com.codexperiments.robolabor.task.TaskRef;
 import com.codexperiments.robolabor.task.android.AndroidTaskManager;
@@ -183,9 +184,14 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
         assertThat(lTask.getTaskException(), nullValue());
     }
 
-    public void ignore_testExecute_inner_hierarchical_persisting() throws InterruptedException {
+    public void testExecute_inner_hierarchical_persisting() throws InterruptedException {
         TaskActivity lInitialActivity = getActivity();
-        HierarchicalTask lTask = lInitialActivity.runHierarchicalTask(mTaskResult);
+        final HierarchicalTask lTask = lInitialActivity.runHierarchicalTask(mTaskResult);
+        getInstrumentation().runOnMainSync(new Runnable() {
+            public void run() {
+                lTask.getTaskRef().onFinish(mTaskResult);
+            }
+        });
         assertThat(lTask.awaitFinished(), equalTo(true));
         assertThat(lTask.getInnerTask().awaitFinished(), equalTo(true));
 
