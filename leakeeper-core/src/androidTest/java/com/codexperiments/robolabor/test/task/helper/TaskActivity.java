@@ -3,14 +3,12 @@ package com.codexperiments.robolabor.test.task.helper;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 
-import android.app.Instrumentation;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.support.v4.app.FragmentActivity;
 
-import android.util.Log;
 import android.widget.FrameLayout;
 import com.codexperiments.robolabor.task.TaskManager;
 import com.codexperiments.robolabor.task.handler.TaskIdentifiable;
@@ -81,19 +79,34 @@ public class TaskActivity extends FragmentActivity {
     protected void onStart() {
         super.onStart();
         mTaskManager.manage(this);
+        mStartedLatch.countDown();
     }
 
     @Override
     protected void onStop() {
         super.onStop();
         mTaskManager.unmanage(this);
-        mCountDownLatch.countDown();
     }
 
-    CountDownLatch mCountDownLatch = new CountDownLatch(1);
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        mDestroyedLatch.countDown();
+    }
+
+    CountDownLatch mDestroyedLatch = new CountDownLatch(1);
     public void waitTerminated() {
         try {
-            mCountDownLatch.await();
+            mDestroyedLatch.await();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    CountDownLatch mStartedLatch = new CountDownLatch(1);
+    public void waitStarted() {
+        try {
+            mStartedLatch.await();
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }

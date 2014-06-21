@@ -25,6 +25,7 @@ import com.codexperiments.robolabor.test.task.helper.TaskActivity;
 import com.codexperiments.robolabor.test.task.helper.TaskActivity.HierarchicalTask;
 import com.codexperiments.robolabor.test.task.helper.TaskEmitter;
 import com.codexperiments.robolabor.test.task.helper.TaskFragment;
+import org.hamcrest.CoreMatchers;
 import org.junit.Ignore;
 
 /**
@@ -60,24 +61,29 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
     @Override
     protected void setUpOnUIThread() throws Exception {
         super.setUpOnUIThread();
+        Log.e("=====", "setUpOnUIThread");
         TaskManagerConfig lConfig = new AndroidTaskManagerConfig(getApplication().getApplication());
         mTaskManager = new AndroidTaskManager(getApplication().getApplication(), lConfig);
         getApplicationContext().registerManager(mTaskManager);
     }
 
-    public void ignore_testExecute_inner_unmanaged_persisting() throws InterruptedException {
+    public void testExecute_inner_unmanaged_persisting() throws InterruptedException {
         TaskEmitter lInitialEmitter = TaskEmitter.persisting(getApplicationContext());
-        BackgroundTask lTask = lInitialEmitter.runInnerTask(mTaskResult);
+        final BackgroundTask lTask = lInitialEmitter.runInnerTask(mTaskResult);
+        getInstrumentation().runOnMainSync(new Runnable() {
+            public void run() {
+                lTask.getTaskRef().onFinish(mTaskResult);
+            }
+        });
         assertThat(lTask.awaitFinished(), equalTo(true));
 
         assertThat(lInitialEmitter.getTaskResult(), equalTo(mTaskResult));
         assertThat(lInitialEmitter.getTaskException(), nullValue());
     }
 
-    public void ignore_testExecute_inner_unmanaged_destroyed() throws InterruptedException {
+    public void testExecute_inner_unmanaged_destroyed() throws InterruptedException {
         TaskEmitter lInitialEmitter = TaskEmitter.stepByStepDestroyed(getApplicationContext());
-        BackgroundTask lTask = lInitialEmitter.runInnerTask(mTaskResult);
-        assertThat(lTask.awaitStepExecuted(), equalTo(true));
+        final BackgroundTask lTask = lInitialEmitter.runInnerTask(mTaskResult);
 
         // Try to ensure the emitter gets garbage collected. WARNING: We don't have full control on the garbage collector so we
         // can guarantee this will work! This test may fail at any moment although it works for now. Such a failure occur may
@@ -86,24 +92,39 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
         lInitialEmitter = null;
         garbageCollect();
 
+        getInstrumentation().runOnMainSync(new Runnable() {
+            public void run() {
+                lTask.getTaskRef().onFinish(mTaskResult);
+            }
+        });
         assertThat(lTask.awaitFinished(), equalTo(true));
         assertThat(lTask.getTaskResult(), equalTo(mTaskResult));
         assertThat(lTask.getTaskException(), nullValue());
     }
 
-    public void ignore_testExecute_inner_managed_persisting_activity() throws InterruptedException {
+    public void testExecute_inner_managed_persisting_activity() throws InterruptedException {
         TaskActivity lInitialActivity = getActivity();
-        BackgroundTask lTask = lInitialActivity.runInnerTask(mTaskResult);
+        final BackgroundTask lTask = lInitialActivity.runInnerTask(mTaskResult);
+        getInstrumentation().runOnMainSync(new Runnable() {
+            public void run() {
+                lTask.getTaskRef().onFinish(mTaskResult);
+            }
+        });
         assertThat(lTask.awaitFinished(), equalTo(true));
 
         assertThat(lInitialActivity.getTaskResult(), equalTo(mTaskResult));
         assertThat(lInitialActivity.getTaskException(), nullValue());
     }
 
-    public void ignore_testExecute_inner_managed_recreated_activity() throws InterruptedException {
+    public void testExecute_inner_managed_recreated_activity() throws InterruptedException {
         TaskActivity lInitialActivity = getActivity();
-        BackgroundTask lTask = lInitialActivity.runInnerTask(mTaskResult);
+        final BackgroundTask lTask = lInitialActivity.runInnerTask(mTaskResult);
         rotateActivitySeveralTimes(4);
+        getInstrumentation().runOnMainSync(new Runnable() {
+            public void run() {
+                lTask.getTaskRef().onFinish(mTaskResult);
+            }
+        });
         assertThat(lTask.awaitFinished(), equalTo(true));
 
         TaskActivity lFinalActivity = getActivity();
@@ -112,29 +133,44 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
         assertThat(lFinalActivity.getTaskException(), nullValue());
     }
 
-    public void ignore_testExecute_inner_managed_destroyed_activity() throws InterruptedException {
+    public void testExecute_inner_managed_destroyed_activity() throws InterruptedException {
         TaskActivity lInitialActivity = getActivity(TaskActivity.dying());
-        BackgroundTask lTask = lInitialActivity.runInnerTask(mTaskResult);
+        final BackgroundTask lTask = lInitialActivity.runInnerTask(mTaskResult);
         lInitialActivity = terminateActivity(lInitialActivity);
+        getInstrumentation().runOnMainSync(new Runnable() {
+            public void run() {
+                lTask.getTaskRef().onFinish(mTaskResult);
+            }
+        });
         assertThat(lTask.awaitFinished(), equalTo(true));
 
         assertThat(lTask.getTaskResult(), equalTo(mTaskResult));
         assertThat(lTask.getTaskException(), nullValue());
     }
 
-    public void ignore_testExecute_inner_managed_persisting_fragmentWithId() throws InterruptedException {
+    public void testExecute_inner_managed_persisting_fragmentWithId() throws InterruptedException {
         TaskFragment lInitialFragment = getActivity().getFragmentWithId();
-        BackgroundTask lTask = lInitialFragment.runInnerTask(mTaskResult);
+        final BackgroundTask lTask = lInitialFragment.runInnerTask(mTaskResult);
+        getInstrumentation().runOnMainSync(new Runnable() {
+            public void run() {
+                lTask.getTaskRef().onFinish(mTaskResult);
+            }
+        });
         assertThat(lTask.awaitFinished(), equalTo(true));
 
         assertThat(lInitialFragment.getTaskResult(), equalTo(mTaskResult));
         assertThat(lInitialFragment.getTaskException(), nullValue());
     }
 
-    public void ignore_testExecute_inner_managed_recreated_fragmentWithId() throws InterruptedException {
+    public void testExecute_inner_managed_recreated_fragmentWithId() throws InterruptedException {
         TaskFragment lInitialFragment = getActivity().getFragmentWithId();
-        BackgroundTask lTask = lInitialFragment.runInnerTask(mTaskResult);
+        final BackgroundTask lTask = lInitialFragment.runInnerTask(mTaskResult);
         rotateActivitySeveralTimes(4);
+        getInstrumentation().runOnMainSync(new Runnable() {
+            public void run() {
+                lTask.getTaskRef().onFinish(mTaskResult);
+            }
+        });
         assertThat(lTask.awaitFinished(), equalTo(true));
 
         TaskFragment lFinalFragment = getActivity().getFragmentWithId();
@@ -143,29 +179,44 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
         assertThat(lFinalFragment.getTaskException(), nullValue());
     }
 
-    public void ignore_testExecute_inner_managed_destroyed_fragmentWithId() throws InterruptedException {
+    public void testExecute_inner_managed_destroyed_fragmentWithId() throws InterruptedException {
         TaskActivity lInitialActivity = getActivity(TaskActivity.dying());
-        BackgroundTask lTask = lInitialActivity.getFragmentWithId().runInnerTask(mTaskResult);
+        final BackgroundTask lTask = lInitialActivity.getFragmentWithId().runInnerTask(mTaskResult);
         lInitialActivity = terminateActivity(lInitialActivity);
+        getInstrumentation().runOnMainSync(new Runnable() {
+            public void run() {
+                lTask.getTaskRef().onFinish(mTaskResult);
+            }
+        });
         assertThat(lTask.awaitFinished(), equalTo(true));
 
         assertThat(lTask.getTaskResult(), equalTo(mTaskResult));
         assertThat(lTask.getTaskException(), nullValue());
     }
 
-    public void ignore_testExecute_inner_managed_persisting_fragmentWithTag() throws InterruptedException {
+    public void testExecute_inner_managed_persisting_fragmentWithTag() throws InterruptedException {
         TaskFragment lInitialFragment = getActivity().getFragmentWithTag(); // Look here.
-        BackgroundTask lTask = lInitialFragment.runInnerTask(mTaskResult);
+        final BackgroundTask lTask = lInitialFragment.runInnerTask(mTaskResult);
+        getInstrumentation().runOnMainSync(new Runnable() {
+            public void run() {
+                lTask.getTaskRef().onFinish(mTaskResult);
+            }
+        });
         assertThat(lTask.awaitFinished(), equalTo(true));
 
         assertThat(lInitialFragment.getTaskResult(), equalTo(mTaskResult));
         assertThat(lInitialFragment.getTaskException(), nullValue());
     }
 
-    public void ignore_testExecute_inner_managed_recreated_fragmentWithTag() throws InterruptedException {
+    public void testExecute_inner_managed_recreated_fragmentWithTag() throws InterruptedException {
         TaskFragment lInitialFragment = getActivity().getFragmentWithTag(); // Look here.
-        BackgroundTask lTask = lInitialFragment.runInnerTask(mTaskResult);
+        final BackgroundTask lTask = lInitialFragment.runInnerTask(mTaskResult);
         rotateActivitySeveralTimes(4);
+        getInstrumentation().runOnMainSync(new Runnable() {
+            public void run() {
+                lTask.getTaskRef().onFinish(mTaskResult);
+            }
+        });
         assertThat(lTask.awaitFinished(), equalTo(true));
 
         TaskFragment lFinalFragment = getActivity().getFragmentWithTag();
@@ -174,10 +225,15 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
         assertThat(lFinalFragment.getTaskException(), nullValue());
     }
 
-    public void ignore_testExecute_inner_managed_destroyed_fragmentWithTag() throws InterruptedException {
+    public void testExecute_inner_managed_destroyed_fragmentWithTag() throws InterruptedException {
         TaskActivity lInitialActivity = getActivity(TaskActivity.dying());
-        BackgroundTask lTask = lInitialActivity.getFragmentWithTag().runInnerTask(mTaskResult); // Look here.
+        final BackgroundTask lTask = lInitialActivity.getFragmentWithTag().runInnerTask(mTaskResult); // Look here.
         lInitialActivity = terminateActivity(lInitialActivity);
+        getInstrumentation().runOnMainSync(new Runnable() {
+            public void run() {
+                lTask.getTaskRef().onFinish(mTaskResult);
+            }
+        });
         assertThat(lTask.awaitFinished(), equalTo(true));
 
         assertThat(lTask.getTaskResult(), equalTo(mTaskResult));
@@ -237,9 +293,14 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
         assertThat(lTask.getTaskException(), nullValue());
     }
 
-    public void ignore_testExecute_static_managed_persisting() throws InterruptedException {
+    public void testExecute_static_managed_persisting() throws InterruptedException {
         TaskActivity lInitialActivity = getActivity();
-        BackgroundTask lTask = lInitialActivity.runStaticTask(mTaskResult);
+        final BackgroundTask lTask = lInitialActivity.runStaticTask(mTaskResult);
+        getInstrumentation().runOnMainSync(new Runnable() {
+            public void run() {
+                lTask.getTaskRef().onFinish(mTaskResult);
+            }
+        });
         assertThat(lTask.awaitFinished(), equalTo(true));
 
         assertThat(lInitialActivity.getTaskResult(), nullValue());
@@ -248,10 +309,15 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
         assertThat(lTask.getTaskException(), nullValue());
     }
 
-    public void ignore_testExecute_static_managed_recreated() throws InterruptedException {
+    public void testExecute_static_managed_recreated() throws InterruptedException {
         TaskActivity lInitialActivity = getActivity();
-        BackgroundTask lTask = lInitialActivity.runStaticTask(mTaskResult);
+        final BackgroundTask lTask = lInitialActivity.runStaticTask(mTaskResult);
         rotateActivitySeveralTimes(4);
+        getInstrumentation().runOnMainSync(new Runnable() {
+            public void run() {
+                lTask.getTaskRef().onFinish(mTaskResult);
+            }
+        });
         assertThat(lTask.awaitFinished(), equalTo(true));
 
         TaskActivity lFinalActivity = getActivity();
@@ -262,19 +328,29 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
         assertThat(lTask.getTaskException(), nullValue());
     }
 
-    public void ignore_testExecute_static_managed_destroyed() throws InterruptedException {
+    public void testExecute_static_managed_destroyed() throws InterruptedException {
         TaskActivity lInitialActivity = getActivity(TaskActivity.dying());
-        BackgroundTask lTask = lInitialActivity.runStaticTask(mTaskResult);
+        final BackgroundTask lTask = lInitialActivity.runStaticTask(mTaskResult);
         lInitialActivity = terminateActivity(lInitialActivity);
+        getInstrumentation().runOnMainSync(new Runnable() {
+            public void run() {
+                lTask.getTaskRef().onFinish(mTaskResult);
+            }
+        });
         assertThat(lTask.awaitFinished(), equalTo(true));
 
         assertThat(lTask.getTaskResult(), equalTo(mTaskResult));
         assertThat(lTask.getTaskException(), nullValue());
     }
 
-    public void ignore_testExecute_standard_managed_persisting() throws InterruptedException {
+    public void testExecute_standard_managed_persisting() throws InterruptedException {
         TaskActivity lInitialActivity = getActivity();
-        BackgroundTask lTask = lInitialActivity.runStandardTask(mTaskResult);
+        final BackgroundTask lTask = lInitialActivity.runStandardTask(mTaskResult);
+        getInstrumentation().runOnMainSync(new Runnable() {
+            public void run() {
+                lTask.getTaskRef().onFinish(mTaskResult);
+            }
+        });
         assertThat(lTask.awaitFinished(), equalTo(true));
 
         assertThat(lInitialActivity.getTaskResult(), nullValue());
@@ -283,10 +359,15 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
         assertThat(lTask.getTaskException(), nullValue());
     }
 
-    public void ignore_testExecute_standard_managed_recreated() throws InterruptedException {
+    public void testExecute_standard_managed_recreated() throws InterruptedException {
         TaskActivity lInitialActivity = getActivity();
-        BackgroundTask lTask = lInitialActivity.runStandardTask(mTaskResult);
+        final BackgroundTask lTask = lInitialActivity.runStandardTask(mTaskResult);
         rotateActivitySeveralTimes(4);
+        getInstrumentation().runOnMainSync(new Runnable() {
+            public void run() {
+                lTask.getTaskRef().onFinish(mTaskResult);
+            }
+        });
         assertThat(lTask.awaitFinished(), equalTo(true));
 
         TaskActivity lFinalActivity = getActivity();
@@ -297,21 +378,36 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
         assertThat(lTask.getTaskException(), nullValue());
     }
 
-    public void ignore_testExecute_standard_managed_destroyed() throws InterruptedException {
+    public void testExecute_standard_managed_destroyed() throws InterruptedException {
         TaskActivity lInitialActivity = getActivity(TaskActivity.dying());
-        BackgroundTask lTask = lInitialActivity.runStandardTask(mTaskResult);
+        final BackgroundTask lTask = lInitialActivity.runStandardTask(mTaskResult);
         lInitialActivity = terminateActivity(lInitialActivity);
+        getInstrumentation().runOnMainSync(new Runnable() {
+            public void run() {
+                lTask.getTaskRef().onFinish(mTaskResult);
+            }
+        });
         assertThat(lTask.awaitFinished(), equalTo(true));
 
         assertThat(lTask.getTaskResult(), equalTo(mTaskResult));
         assertThat(lTask.getTaskException(), nullValue());
     }
 
-    public void ignore_testExecute_severalTasks_serial_withDifferentIds() throws InterruptedException {
+    public void testExecute_severalTasks_serial_withDifferentIds() throws InterruptedException {
         TaskActivity lInitialActivity = getActivity();
-        BackgroundTask lTask = lInitialActivity.runInnerTaskWithId(nextId(), mTaskResult);
+        final BackgroundTask lTask = lInitialActivity.runInnerTaskWithId(nextId(), mTaskResult);
         // Execute a new task. Since tasks are executed serially, this one will overwrite previous one result.
-        BackgroundTask lNewTask = lInitialActivity.runInnerTaskWithId(nextId(), nextResult()); // Expect a new result.
+        final BackgroundTask lNewTask = lInitialActivity.runInnerTaskWithId(nextId(), nextResult()); // Expect a new result.
+        getInstrumentation().runOnMainSync(new Runnable() {
+            public void run() {
+                lTask.getTaskRef().onFinish(mTaskResult);
+            }
+        });
+        getInstrumentation().runOnMainSync(new Runnable() {
+            public void run() {
+                lNewTask.getTaskRef().onFinish(mTaskResult);
+            }
+        });
         assertThat(lTask.awaitFinished(), equalTo(true));
         assertThat(lNewTask.awaitFinished(), equalTo(true)); // Ensure second task is executed too.
 
@@ -319,29 +415,50 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
         assertThat(lInitialActivity.getTaskException(), nullValue());
     }
 
-    public void ignore_testExecute_severalTasks_serial_withSameId() throws InterruptedException {
+    public void testExecute_severalTasks_serial_withSameId() throws InterruptedException {
         TaskActivity lInitialActivity = getActivity();
-        BackgroundTask lTask = lInitialActivity.runInnerTaskWithId(nextId(), mTaskResult);
+        final BackgroundTask lTask = lInitialActivity.runInnerTaskWithId(nextId(), mTaskResult);
         // Execute a new task with the same Id. Since previous task has not been fully executed, this one will not be enqueued.
-        BackgroundTask lNewTask = lInitialActivity.runInnerTaskWithId(mTaskId, mTaskResult + 1); // Keep old mTaskResult value.
+        final BackgroundTask lNewTask = lInitialActivity.runInnerTaskWithId(mTaskId, mTaskResult + 1); // Keep old mTaskResult value.
+        getInstrumentation().runOnMainSync(new Runnable() {
+            public void run() {
+                lTask.getTaskRef().onFinish(mTaskResult);
+            }
+        });
         assertThat(lTask.awaitFinished(), equalTo(true));
         assertThat(lNewTask.awaitFinished(), equalTo(false)); // Ensure second task is not executed as one is in the queue.
+        assertThat(lNewTask.getTaskRef(), nullValue());
 
         assertThat(lInitialActivity.getTaskResult(), equalTo(mTaskResult)); // Result should be the one of the first task.
         assertThat(lInitialActivity.getTaskException(), nullValue());
 
         // Execute a new task with the same Id. Since previous task has been fully executed, this one will be enqueued.
-        BackgroundTask l2ndNewTask = lInitialActivity.runInnerTaskWithId(mTaskId, nextResult()); // Expect a new result.
+        final BackgroundTask l2ndNewTask = lInitialActivity.runInnerTaskWithId(mTaskId, nextResult()); // Expect a new result.
+        getInstrumentation().runOnMainSync(new Runnable() {
+            public void run() {
+                l2ndNewTask.getTaskRef().onFinish(mTaskResult);
+            }
+        });
         assertThat(l2ndNewTask.awaitFinished(), equalTo(true));
         assertThat(lInitialActivity.getTaskResult(), equalTo(mTaskResult)); // Result should be the one of the last task.
         assertThat(lInitialActivity.getTaskException(), nullValue());
     }
 
-    public void ignore_testExecute_severalTasks_serial_withAndWithoutId() throws InterruptedException {
+    public void testExecute_severalTasks_serial_withAndWithoutId() throws InterruptedException {
         TaskActivity lInitialActivity = getActivity();
-        BackgroundTask lTask = lInitialActivity.runInnerTaskWithId(nextId(), mTaskResult);
+        final BackgroundTask lTask = lInitialActivity.runInnerTaskWithId(nextId(), mTaskResult);
         // Execute a new task. Since tasks are executed serially, this one will overwrite previous one result.
-        BackgroundTask lNewTask = lInitialActivity.runInnerTask(nextResult()); // Expect a new result.
+        final BackgroundTask lNewTask = lInitialActivity.runInnerTask(nextResult()); // Expect a new result.
+        getInstrumentation().runOnMainSync(new Runnable() {
+            public void run() {
+                lTask.getTaskRef().onFinish(mTaskResult);
+            }
+        });
+        getInstrumentation().runOnMainSync(new Runnable() {
+            public void run() {
+                lNewTask.getTaskRef().onFinish(mTaskResult);
+            }
+        });
         assertThat(lTask.awaitFinished(), equalTo(true));
         assertThat(lNewTask.awaitFinished(), equalTo(true)); // Ensure second task is executed too.
 
@@ -349,21 +466,36 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
         assertThat(lInitialActivity.getTaskException(), nullValue());
     }
 
-    public void ignore_testExecute_severalTasks_serial_withoutAndWithId() throws InterruptedException {
-        TaskActivity lInitialActivity = getActivity();
-        BackgroundTask lTask = lInitialActivity.runInnerTask(mTaskResult);
-        // Execute a new task. Since tasks are executed serially, this one will overwrite previous one result.
-        BackgroundTask lNewTask = lInitialActivity.runInnerTaskWithId(nextId(), nextResult()); // Expect a new result.
-        assertThat(lTask.awaitFinished(), equalTo(true));
-        assertThat(lNewTask.awaitFinished(), equalTo(true)); // Ensure second task is executed too.
-
-        assertThat(lInitialActivity.getTaskResult(), equalTo(mTaskResult)); // Result should be the one of the second task.
-        assertThat(lInitialActivity.getTaskException(), nullValue());
-    }
-
-    public void ignore_testExecute_reuseTask() throws Throwable {
+    public void testExecute_severalTasks_serial_withoutAndWithId() throws InterruptedException {
         TaskActivity lInitialActivity = getActivity();
         final BackgroundTask lTask = lInitialActivity.runInnerTask(mTaskResult);
+        // Execute a new task. Since tasks are executed serially, this one will overwrite previous one result.
+        final BackgroundTask lNewTask = lInitialActivity.runInnerTaskWithId(nextId(), nextResult()); // Expect a new result.
+        getInstrumentation().runOnMainSync(new Runnable() {
+            public void run() {
+                lTask.getTaskRef().onFinish(mTaskResult);
+            }
+        });
+        getInstrumentation().runOnMainSync(new Runnable() {
+            public void run() {
+                lNewTask.getTaskRef().onFinish(mTaskResult);
+            }
+        });
+        assertThat(lTask.awaitFinished(), equalTo(true));
+        assertThat(lNewTask.awaitFinished(), equalTo(true)); // Ensure second task is executed too.
+
+        assertThat(lInitialActivity.getTaskResult(), equalTo(mTaskResult)); // Result should be the one of the second task.
+        assertThat(lInitialActivity.getTaskException(), nullValue());
+    }
+
+    public void testExecute_reuseTask() throws Throwable {
+        TaskActivity lInitialActivity = getActivity();
+        final BackgroundTask lTask = lInitialActivity.runInnerTask(mTaskResult);
+        getInstrumentation().runOnMainSync(new Runnable() {
+            public void run() {
+                lTask.getTaskRef().onFinish(mTaskResult);
+            }
+        });
         assertThat(lTask.awaitFinished(), equalTo(true));
         assertThat(lInitialActivity.getTaskResult(), equalTo(mTaskResult));
         assertThat(lInitialActivity.getTaskException(), nullValue());
@@ -385,21 +517,31 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
         assertThat(lFailure.get(), equalTo(true));
     }
 
-    public void ignore_testExecute_persisting_failure() throws InterruptedException {
-        Exception lTaskException = new Exception("Something happened");
+    public void testExecute_persisting_failure() throws InterruptedException {
+        final Exception lTaskException = new Exception("Something happened");
         TaskActivity lInitialActivity = getActivity();
-        BackgroundTask lTask = lInitialActivity.runInnerTask(lTaskException);
+        final BackgroundTask lTask = lInitialActivity.runInnerTask(lTaskException);
+        getInstrumentation().runOnMainSync(new Runnable() {
+            public void run() {
+                lTask.getTaskRef().onFail(lTaskException);
+            }
+        });
         assertThat(lTask.awaitFinished(), equalTo(true));
 
         assertThat(lInitialActivity.getTaskResult(), nullValue());
         assertThat(lInitialActivity.getTaskException(), sameInstance((Throwable) lTaskException));
     }
 
-    public void ignore_testExecute_recreated_failure() throws InterruptedException {
-        Exception lTaskException = new Exception("Something happened");
+    public void testExecute_recreated_failure() throws InterruptedException {
+        final Exception lTaskException = new Exception("Something happened");
         TaskActivity lInitialActivity = getActivity();
-        BackgroundTask lTask = lInitialActivity.runInnerTask(lTaskException);
+        final BackgroundTask lTask = lInitialActivity.runInnerTask(lTaskException);
         rotateActivitySeveralTimes(1);
+        getInstrumentation().runOnMainSync(new Runnable() {
+            public void run() {
+                lTask.getTaskRef().onFail(lTaskException);
+            }
+        });
         assertThat(lTask.awaitFinished(), equalTo(true));
 
         TaskActivity lFinalActivity = getActivity();
@@ -408,21 +550,31 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
         assertThat(lFinalActivity.getTaskException(), sameInstance((Throwable) lTaskException));
     }
 
-    public void ignore_testExecute_recreated_destroyed() throws InterruptedException {
-        Exception lTaskException = new Exception("Something happened");
+    public void testExecute_recreated_destroyed() throws InterruptedException {
+        final Exception lTaskException = new Exception("Something happened");
         TaskActivity lInitialActivity = getActivity(TaskActivity.dying());
-        BackgroundTask lTask = lInitialActivity.runInnerTask(lTaskException);
+        final BackgroundTask lTask = lInitialActivity.runInnerTask(lTaskException);
         lInitialActivity = terminateActivity(lInitialActivity);
+        getInstrumentation().runOnMainSync(new Runnable() {
+            public void run() {
+                lTask.getTaskRef().onFail(lTaskException);
+            }
+        });
         assertThat(lTask.awaitFinished(), equalTo(true));
 
         assertThat(lTask.getTaskResult(), nullValue());
         assertThat(lTask.getTaskException(), sameInstance((Throwable) lTaskException));
     }
 
-    public void ignore_testRebind_inner_managed_persisting() throws InterruptedException {
+    public void testRebind_inner_managed_persisting() throws InterruptedException {
         TaskActivity lInitialActivity = getActivity();
-        BackgroundTask lTask = lInitialActivity.runInnerTask(mTaskResult);
-        BackgroundTaskResult lTaskResult = lInitialActivity.rebindInnerTask(lTask, true);
+        final BackgroundTask lTask = lInitialActivity.runInnerTask(mTaskResult);
+        final BackgroundTaskResult lTaskResult = lInitialActivity.rebindInnerTask(lTask, true);
+        getInstrumentation().runOnMainSync(new Runnable() {
+            public void run() {
+                lTask.getTaskRef().onFinish(mTaskResult);
+            }
+        });
         assertThat(lTaskResult.awaitFinished(), equalTo(true));
 
         assertThat(lInitialActivity.getTaskResult(), equalTo(mTaskResult));
@@ -431,12 +583,17 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
         assertThat(lTaskResult.getTaskException(), nullValue());
     }
 
-    public void ignore_testRebind_inner_managed_recreated() throws InterruptedException {
+    public void testRebind_inner_managed_recreated() throws InterruptedException {
         TaskActivity lInitialActivity = getActivity();
-        BackgroundTask lTask = lInitialActivity.runInnerTask(mTaskResult);
+        final BackgroundTask lTask = lInitialActivity.runInnerTask(mTaskResult);
         rotateActivitySeveralTimes(2);
-        BackgroundTaskResult lTaskResult = lInitialActivity.rebindInnerTask(lTask, true);
+        final BackgroundTaskResult lTaskResult = lInitialActivity.rebindInnerTask(lTask, true);
         rotateActivitySeveralTimes(2);
+        getInstrumentation().runOnMainSync(new Runnable() {
+            public void run() {
+                lTask.getTaskRef().onFinish(mTaskResult);
+            }
+        });
         assertThat(lTaskResult.awaitFinished(), equalTo(true));
 
         TaskActivity lFinalActivity = getActivity();
@@ -447,21 +604,31 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
         assertThat(lTaskResult.getTaskException(), nullValue());
     }
 
-    public void ignore_testRebind_inner_managed_destroyed() throws InterruptedException {
+    public void testRebind_inner_managed_destroyed() throws InterruptedException {
         TaskActivity lInitialActivity = getActivity(TaskActivity.dying());
-        BackgroundTask lTask = lInitialActivity.runInnerTask(mTaskResult);
+        final BackgroundTask lTask = lInitialActivity.runInnerTask(mTaskResult);
         // TODO There is a race condion here
         BackgroundTaskResult lTaskResult = lInitialActivity.rebindInnerTask(lTask, true);
         lInitialActivity = terminateActivity(lInitialActivity);
+        getInstrumentation().runOnMainSync(new Runnable() {
+            public void run() {
+                lTask.getTaskRef().onFinish(mTaskResult);
+            }
+        });
         assertThat(lTaskResult.awaitFinished(), equalTo(true));
 
         assertThat(lTaskResult.getTaskResult(), equalTo(mTaskResult));
         assertThat(lTaskResult.getTaskException(), nullValue());
     }
 
-    public void ignore_testRebind_inner_managed_afterTaskEnded() throws InterruptedException {
+    public void testRebind_inner_managed_afterTaskEnded() throws InterruptedException {
         TaskActivity lInitialActivity = getActivity();
-        BackgroundTask lTask = lInitialActivity.runInnerTask(mTaskResult);
+        final BackgroundTask lTask = lInitialActivity.runInnerTask(mTaskResult);
+        getInstrumentation().runOnMainSync(new Runnable() {
+            public void run() {
+                lTask.getTaskRef().onFinish(mTaskResult);
+            }
+        });
         assertThat(lTask.awaitFinished(), equalTo(true));
 
         BackgroundTaskResult lTaskResult = lInitialActivity.rebindInnerTask(lTask, false);
@@ -485,7 +652,7 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
     }
 
     @UiThreadTest
-    public void ignore_testExecute_failure_taskNull() throws InterruptedException {
+    public void testExecute_failure_taskNull() throws InterruptedException {
         try {
             mTaskManager.manage(null);
             fail();
@@ -517,7 +684,7 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
         }
     }
 
-    public void ignore_testExecute_failure_notCalledFromUIThread() throws InterruptedException {
+    public void testExecute_failure_notCalledFromUIThread() throws InterruptedException {
         try {
             mTaskManager.execute(new Task<Void, Integer>() {
                 public void onFinish(Integer pTaskResult) {
@@ -557,7 +724,7 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
         }
     }
 
-    public void ignore_testExecute_failure_notCalledFromATask() throws InterruptedException {
+    public void testExecute_failure_notCalledFromATask() throws InterruptedException {
         try {
             mTaskManager.notifyProgress(/*
                                          * new TaskProgress() { public void onProgress(TaskManager pTaskManager) { } }
@@ -571,11 +738,21 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
     /**
      * Bug that causes hierarchical tasks to corrupt emitter list. Shouldn't occur anymore.
      */
-    public void ignore_testExecute_inner_hierarchical_corruptionBug() throws InterruptedException {
+    public void testExecute_inner_hierarchical_corruptionBug() throws InterruptedException {
         TaskActivity lInitialActivity = getActivity();
-        TaskActivity.HierarchicalTask_CorruptionBug lTask = lInitialActivity.runHierarchicalTask_corruptionBug(mTaskResult);
+        final TaskActivity.HierarchicalTask_CorruptionBug lTask = lInitialActivity.runHierarchicalTask_corruptionBug(mTaskResult);
         rotateActivitySeveralTimes(4);
+        getInstrumentation().runOnMainSync(new Runnable() {
+            public void run() {
+                lTask.getTaskRef().onFinish(mTaskResult);
+            }
+        });
         assertThat(lTask.awaitFinished(), equalTo(true));
+        getInstrumentation().runOnMainSync(new Runnable() {
+            public void run() {
+                lTask.getBackgroundTask2().getTaskRef().onFinish(mTaskResult + 1);
+            }
+        });
         assertThat(lTask.getBackgroundTask2().awaitFinished(), equalTo(true));
 
         TaskActivity lFinalActivity = getActivity();

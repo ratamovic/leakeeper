@@ -1,6 +1,8 @@
 package com.codexperiments.robolabor.test.common;
 
 import static java.lang.Thread.*;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,6 +40,7 @@ public class TestCase<TActivity extends Activity> extends ActivityInstrumentatio
         mApplicationContext = mApplication.provideContext();
 
         // Execute initialization code on UI Thread.
+        Log.e("=====", "setup");
         final List<Exception> lThrowableHolder = new ArrayList<Exception>(1);
         getInstrumentation().runOnMainSync(new Runnable() {
             public void run()
@@ -49,6 +52,7 @@ public class TestCase<TActivity extends Activity> extends ActivityInstrumentatio
                 }
             }
         });
+        Log.e("=====", "setup2");
         // If an exception occurred during UI Thread initialization, re-throw the exception.
         if (lThrowableHolder.size() > 0) {
             throw lThrowableHolder.get(0);
@@ -58,6 +62,7 @@ public class TestCase<TActivity extends Activity> extends ActivityInstrumentatio
     @Override
     protected void tearDown() throws Exception
     {
+        Log.e("=====", "tearDown");
         super.tearDown();
         mApplication.setCurrentActivity(null);
         mApplicationContext.removeManagers();
@@ -106,11 +111,16 @@ public class TestCase<TActivity extends Activity> extends ActivityInstrumentatio
 
             Resources lResources = getInstrumentation().getTargetContext().getResources();
             Configuration lConfiguration = lResources.getConfiguration();
+            TaskActivity lCurrentActivity = (TaskActivity) mApplication.getCurrentActivity();
             if (lConfiguration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
-                mApplication.getCurrentActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+                lCurrentActivity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
             } else {
-                mApplication.getCurrentActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+                lCurrentActivity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
             }
+            lCurrentActivity.waitTerminated();
+
+            TaskActivity lNewActivity = (TaskActivity) mApplication.getCurrentActivity();
+            lNewActivity.waitStarted();
         }
     }
 

@@ -6,6 +6,7 @@ import java.util.List;
 import android.app.Activity;
 import android.app.Application;
 import android.support.v4.app.Fragment;
+import android.util.Log;
 
 public class TestApplicationContext
 {
@@ -42,16 +43,8 @@ public class TestApplicationContext
 
     public void registerManager(Object pManager)
     {
+        Log.e("=====", "registerManager");
         mManagers.add(pManager);
-    }
-
-    public void removeManager(Class<?> pManagerType)
-    {
-        for (Object iManager : mManagers) {
-            if (pManagerType.isInstance(iManager)) {
-                mManagers.remove(iManager);
-            }
-        }
     }
 
     public void removeManagers()
@@ -62,11 +55,13 @@ public class TestApplicationContext
     @SuppressWarnings("unchecked")
     public <TManager> TManager getManager(Class<TManager> pManagerClass)
     {
+        Log.e("=====", "getManager");
         for (Object iManager : mManagers) {
             if (pManagerClass.isInstance(iManager)) {
                 return (TManager) iManager;
             }
         }
+        Log.e("=====", "getManagerException");
         throw TestException.unknownManager(pManagerClass);
     }
 

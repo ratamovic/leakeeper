@@ -12,7 +12,6 @@ import static org.junit.Assert.fail;
 
 public class BackgroundTask implements Task<Integer, Integer> {
     public static final int TASK_STEP_COUNT = 5;
-    public static final int TASK_STEP_DURATION_MS = 1000;
     // At least one test must wait until this delay has ended. So please avoid increasing it except for debugging purpose.
     public static final int TASK_TIMEOUT_MS = 10000;
 
@@ -20,14 +19,9 @@ public class BackgroundTask implements Task<Integer, Integer> {
     private Boolean mCheckEmitterNull;
     private boolean mStepByStep;
     private int mStepCounter;
-    private Integer mExpectedTaskResult;
-    private Exception mExpectedTaskException;
     private Integer mTaskResult;
     private Throwable mTaskException;
 
-    private volatile boolean mAwaitFinished;
-    private CyclicBarrier mTaskStepStart;
-    private CountDownLatch mTaskStepEnd;
     private CountDownLatch mTaskFinished;
 
     public BackgroundTask(Integer pTaskResult, Boolean pCheckEmitterNull, boolean pStepByStep) {
@@ -46,14 +40,9 @@ public class BackgroundTask implements Task<Integer, Integer> {
         mCheckEmitterNull = pCheckEmitterNull;
         mStepByStep = pStepByStep;
         mStepCounter = pStepByStep ? TASK_STEP_COUNT : 0;
-        mExpectedTaskResult = pTaskResult;
-        mExpectedTaskException = pTaskException;
         mTaskResult = null;
         mTaskException = null;
 
-        mAwaitFinished = !mStepByStep;
-        mTaskStepStart = mStepByStep ? new CyclicBarrier(2) : null;
-        mTaskStepEnd = mStepByStep ? new CountDownLatch(1) : null;
         mTaskFinished = new CountDownLatch(1);
     }
 
@@ -108,65 +97,56 @@ public class BackgroundTask implements Task<Integer, Integer> {
         mTaskFinished.countDown();
     }
 
-    private void awaitStart() {
-        if (mTaskStepStart != null) {
-            try {
-                mTaskStepStart.await(TASK_TIMEOUT_MS, TimeUnit.MILLISECONDS);
-                if (mAwaitFinished) {
-                    mTaskStepStart = null;
-                } else {
-                    mTaskStepStart.reset();
-                }
-            } catch (TimeoutException | InterruptedException | BrokenBarrierException exception) {
-                fail();
-            }
-        }
-    }
+//    private void awaitStart() {
+//        if (mTaskStepStart != null) {
+//            try {
+//                mTaskStepStart.await(TASK_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+//                if (mAwaitFinished) {
+//                    mTaskStepStart = null;
+//                } else {
+//                    mTaskStepStart.reset();
+//                }
+//            } catch (TimeoutException | InterruptedException | BrokenBarrierException exception) {
+//                fail();
+//            }
+//        }
+//    }
 
-    private void notifyEnded() {
-        if (mTaskStepStart != null) {
-            mTaskStepEnd.countDown();
-        }
-    }
+//    private void notifyEnded() {
+//        if (mTaskStepStart != null) {
+//            mTaskStepEnd.countDown();
+//        }
+//    }
 
     /**
      * Works in step by step mode only.
      */
-    public boolean awaitStepExecuted() {
-        if (mTaskStepStart == null) return false;
-
-        try {
-            if (!(mTaskStepStart.await(TASK_TIMEOUT_MS, TimeUnit.MILLISECONDS) >= 0)) return false;
-            boolean lResult = mTaskStepEnd.await(TASK_TIMEOUT_MS, TimeUnit.MILLISECONDS);
-            mTaskStepEnd = new CountDownLatch(1);
-            return lResult;
-        } catch (TimeoutException eTimeoutException) {
-            return false;
-        } catch (InterruptedException eInterruptedException) {
-            fail();
-            return false;
-        } catch (BrokenBarrierException eBrokenBarrierException) {
-            fail();
-            return false;
-        }
-    }
+//    public boolean awaitStepExecuted() {
+//        if (mTaskStepStart == null) return false;
+//
+//        try {
+//            if (!(mTaskStepStart.await(TASK_TIMEOUT_MS, TimeUnit.MILLISECONDS) >= 0)) return false;
+//            boolean lResult = mTaskStepEnd.await(TASK_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+//            mTaskStepEnd = new CountDownLatch(1);
+//            return lResult;
+//        } catch (TimeoutException eTimeoutException) {
+//            return false;
+//        } catch (InterruptedException eInterruptedException) {
+//            fail();
+//            return false;
+//        } catch (BrokenBarrierException eBrokenBarrierException) {
+//            fail();
+//            return false;
+//        }
+//    }
 
     /**
      * Works in step by step mode only.
      */
     public boolean awaitFinished() {
         try {
-            mAwaitFinished = true;
-            if (mTaskStepStart != null) {
-                if (!(mTaskStepStart.await(TASK_TIMEOUT_MS, TimeUnit.MILLISECONDS) >= 0)) return false;
-            }
             return mTaskFinished.await(TASK_TIMEOUT_MS, TimeUnit.MILLISECONDS);
-        } catch (TimeoutException eTimeoutException) {
-            return false;
         } catch (InterruptedException eInterruptedException) {
-            fail();
-            return false;
-        } catch (BrokenBarrierException eBrokenBarrierException) {
             fail();
             return false;
         }
