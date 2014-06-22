@@ -10,7 +10,7 @@ public class TestApplication implements TestApplicationContext.Provider
 
     private TestApplicationContext mApplicationContext;
     private volatile Application mApplication;
-    private Activity mCurrentActivity;
+    private volatile Activity mCurrentActivity;
 
     public static TestApplication getInstance(final com.codexperiments.robolabor.test.common.TestCase<?> pTestCase)
     {

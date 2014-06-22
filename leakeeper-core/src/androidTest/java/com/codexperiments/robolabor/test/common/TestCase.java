@@ -2,6 +2,7 @@ package com.codexperiments.robolabor.test.common;
 
 import static java.lang.Thread.*;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
@@ -19,6 +20,7 @@ import android.content.res.Resources;
 import android.test.ActivityInstrumentationTestCase2;
 import android.util.Log;
 import com.codexperiments.robolabor.test.task.helper.TaskActivity;
+import org.hamcrest.CoreMatchers;
 
 public class TestCase<TActivity extends Activity> extends ActivityInstrumentationTestCase2<TActivity>
 {
@@ -112,6 +114,8 @@ public class TestCase<TActivity extends Activity> extends ActivityInstrumentatio
             Resources lResources = getInstrumentation().getTargetContext().getResources();
             Configuration lConfiguration = lResources.getConfiguration();
             TaskActivity lCurrentActivity = (TaskActivity) mApplication.getCurrentActivity();
+            Log.e("*** ROTATE_START", "AAA " + lCurrentActivity);
+            lCurrentActivity.waitStarted();
             if (lConfiguration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
                 lCurrentActivity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
             } else {
@@ -120,6 +124,12 @@ public class TestCase<TActivity extends Activity> extends ActivityInstrumentatio
             lCurrentActivity.waitTerminated();
 
             TaskActivity lNewActivity = (TaskActivity) mApplication.getCurrentActivity();
+            while (lNewActivity == lCurrentActivity) {
+                sleep(1);
+                lNewActivity = (TaskActivity) mApplication.getCurrentActivity();
+            }
+            Log.e("*** ROTATE_END", "BBB " + lNewActivity);
+            assertThat(lNewActivity, not(equalTo(lCurrentActivity)));
             lNewActivity.waitStarted();
         }
     }

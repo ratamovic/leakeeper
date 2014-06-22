@@ -9,6 +9,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.support.v4.app.FragmentActivity;
 
+import android.util.Log;
 import android.widget.FrameLayout;
 import com.codexperiments.robolabor.task.TaskManager;
 import com.codexperiments.robolabor.task.handler.TaskIdentifiable;
@@ -49,6 +50,7 @@ public class TaskActivity extends FragmentActivity {
     @Override
     protected void onCreate(Bundle pBundle) {
         super.onCreate(pBundle);
+        Log.e("*** onCreate", "YYY " + this);
         FrameLayout contentView = new FrameLayout(this);
         contentView.setId(getIntent().getIntExtra("ContentViewId", CONTENT_VIEW_ID));
         setContentView(contentView);
@@ -79,24 +81,29 @@ public class TaskActivity extends FragmentActivity {
     protected void onStart() {
         super.onStart();
         mTaskManager.manage(this);
+        Log.e("*** onStart", "CCC " + this);
+        mDestroyedLatch = new CountDownLatch(1);
         mStartedLatch.countDown();
     }
 
     @Override
     protected void onStop() {
         super.onStop();
+        Log.e("*** onStop", "DDD " + this);
         mTaskManager.unmanage(this);
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        Log.e("*** onDestroy", "EEE " + this);
         mDestroyedLatch.countDown();
     }
 
     CountDownLatch mDestroyedLatch = new CountDownLatch(1);
     public void waitTerminated() {
         try {
+            mStartedLatch = new CountDownLatch(1);
             mDestroyedLatch.await();
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
