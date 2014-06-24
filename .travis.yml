@@ -1,0 +1,18 @@
+language: android
+android:
+  components:
+    - build-tools-19.1.0
+  licenses:
+    - android-sdk-license-.*
+
+before_script:
+  - echo no | android create avd --force -n test -t android-16 --abi armeabi-v7a
+  - emulator -avd test -no-skin -no-audio -no-window &
+  - ./.travis.sh wait_for_emulator
+
+before_install:
+  - export TERM=dumb
+  - ./gradlew -v
+  - uname -a
+
+script: ./gradlew connectedAndroidTest
