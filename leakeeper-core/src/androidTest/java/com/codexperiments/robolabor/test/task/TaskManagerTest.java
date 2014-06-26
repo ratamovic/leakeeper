@@ -63,7 +63,7 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
         super.setUpOnUIThread();
         Log.e("=====", "setUpOnUIThread");
         TaskManagerConfig lConfig = new AndroidTaskManagerConfig(getApplication().getApplication());
-        mTaskManager = new AndroidTaskManager(getApplication().getApplication(), lConfig);
+        mTaskManager = new AndroidTaskManager(getApplication().getApplication(), lConfig, TaskResult.class);
         getApplicationContext().registerManager(mTaskManager);
     }
 

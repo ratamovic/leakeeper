@@ -51,10 +51,12 @@ import com.codexperiments.robolabor.task.util.EmptyLock;
  * 
  * TODO pending(TaskType)
  */
-public class AndroidTaskManager implements TaskManager {
+public class AndroidTaskManager<TCallback extends Task> implements TaskManager {
     private static final int DEFAULT_CAPACITY = 64;
     // To generate task references.
     private static int TASK_REF_COUNTER;
+
+    private Class<TCallback> mCallbackClass;
 
     private TaskScheduler mDefaultScheduler;
     private LockingStrategy mLockingStrategy;
@@ -73,8 +75,10 @@ public class AndroidTaskManager implements TaskManager {
         TASK_REF_COUNTER = Integer.MIN_VALUE;
     }
 
-    public AndroidTaskManager(Application pApplication, TaskManagerConfig pConfig) {
+    public AndroidTaskManager(Application pApplication, TaskManagerConfig pConfig, Class<TCallback> pCallbackClass) {
         super();
+
+        mCallbackClass = pCallbackClass;
 
         mDefaultScheduler = new AndroidUITaskScheduler();
         mConfig = pConfig;
@@ -187,7 +191,7 @@ public class AndroidTaskManager implements TaskManager {
             try {
                 TaskRef<TResult> lTaskRef = lContainer.prepareToRun(pTaskResult);
                 mConfig.resolveExecutor(pTask).execute(lContainer);
-                return new AndroidTaskWrapper<>(lContainer, lTaskRef, pTaskResult);
+                return new AndroidTaskWrapper<TCallback, TParam, TResult>(lContainer, lTaskRef, pTaskResult);
             }
             // If preparation operation fails, try to leave the manager in a consistent state without memory leaks.
             catch (RuntimeException eRuntimeException) {
@@ -670,7 +674,7 @@ public class AndroidTaskManager implements TaskManager {
                 if (mParentDescriptors == null) {
                     // A task will have most of the time no parents. Hence lazy-initialization. But if that's not the case, then a
                     // task will usually have only one parent, rarely more. Hence a capacity of 1.
-                    mParentDescriptors = new ArrayList<AndroidTaskManager.TaskDescriptor<?, ?>>(1);
+                    mParentDescriptors = new ArrayList<TaskDescriptor<?, ?>>(1);
                 }
                 mParentDescriptors.add(lDescriptor);
             } else {
