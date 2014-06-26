@@ -90,10 +90,9 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
         // occur in the BackgroundTask when checking if emitter is null (it should be null but it won't be in case of failure). A
         // failure could also mean there is a memory-leak somewhere...
         lInitialEmitter = null;
-        garbageCollect();
-
         getInstrumentation().runOnMainSync(new Runnable() {
             public void run() {
+                System.gc();
                 lTask.getTaskRef().onFinish(mTaskResult);
             }
         });
@@ -639,13 +638,18 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
 
     @UiThreadTest
     public void ignore_testRebind_inner_managed_nonExistingTask() throws Throwable {
-        boolean lBound = mTaskManager.rebind(new TaskRef<Integer>(Integer.MAX_VALUE), new TaskResult<Integer>() {
+        boolean lBound = mTaskManager.rebind(new TaskRef<Integer>(Integer.MAX_VALUE), new Task() {
             @Override
-            public void onFinish(Integer pTaskResult) {
+            public void onFinish(/*Integer*/Object pTaskResult) {
             }
 
             @Override
             public void onFail(Throwable pTaskException) {
+            }
+
+            @Override
+            public TaskRef toRef() {
+                return null;
             }
         });
         assertThat(lBound, equalTo(false));
@@ -686,8 +690,8 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
 
     public void testExecute_failure_notCalledFromUIThread() throws InterruptedException {
         try {
-            mTaskManager.execute(new Task<Void, Integer>() {
-                public void onFinish(Integer pTaskResult) {
+            mTaskManager.execute(new Task/*<Void, Integer>*/() {
+                public void onFinish(/*Integer*/Object pTaskResult) {
                 }
 
                 public void onFail(Throwable pTaskException) {
@@ -724,16 +728,16 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
         }
     }
 
-    public void testExecute_failure_notCalledFromATask() throws InterruptedException {
-        try {
-            mTaskManager.notifyProgress(/*
-                                         * new TaskProgress() { public void onProgress(TaskManager pTaskManager) { } }
-                                         */);
-            fail();
-        } catch (AndroidTaskManagerException eAndroidTaskManagerException) {
-            // Success
-        }
-    }
+//    public void testExecute_failure_notCalledFromATask() throws InterruptedException {
+//        try {
+//            mTaskManager.notifyProgress(/*
+//                                         * new TaskProgress() { public void onProgress(TaskManager pTaskManager) { } }
+//                                         */);
+//            fail();
+//        } catch (AndroidTaskManagerException eAndroidTaskManagerException) {
+//            // Success
+//        }
+//    }
 
     /**
      * Bug that causes hierarchical tasks to corrupt emitter list. Shouldn't occur anymore.

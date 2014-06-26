@@ -4,13 +4,14 @@ import android.os.Handler;
 import android.os.Looper;
 
 import com.codexperiments.robolabor.task.TaskManager;
+import com.codexperiments.robolabor.task.handler.Task;
 import com.codexperiments.robolabor.test.common.TestApplicationContext;
 
 public class TaskEmitter {
     private boolean mCheckEmitterNull;
     private boolean mStepByStep;
 
-    private TaskManager mTaskManager;
+    private TaskManager<Task> mTaskManager;
     private Integer mTaskResult;
     private Throwable mTaskException;
 
@@ -81,9 +82,9 @@ public class TaskEmitter {
         }
 
         @Override
-        public void onFinish(Integer pTaskResult) {
+        public void onFinish(/*Integer*/Object pTaskResult) {
             if (getEmitter() != null) {
-                mTaskResult = pTaskResult;
+                mTaskResult = (Integer) pTaskResult;
             }
             super.onFinish(pTaskResult);
         }

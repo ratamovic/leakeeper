@@ -1,6 +1,6 @@
 package com.codexperiments.robolabor.task.handler;
 
-public interface TaskResult<TResult> extends TaskHandler {
+public interface TaskResult/*<TResult>*/ extends TaskHandler {
     /**
      * Handler method called when task computation has finished correctly. This method is called on the UI Thread. This is where
      * objects or components related to the UI should be updated (e.g. merging data with existing results on screens). It is safe
@@ -10,7 +10,7 @@ public interface TaskResult<TResult> extends TaskHandler {
      * 
      * @param pTaskManager Use this TaskManager to perform any operation from the handler.
      */
-    void onFinish(TResult pResult);
+    void onFinish(/*TResult*/Object pResult);
 
     /**
      * Handler method called when task computation has failed during execution or in the onFinish() handler. This method is called

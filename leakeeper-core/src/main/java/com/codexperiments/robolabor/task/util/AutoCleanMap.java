@@ -3,10 +3,13 @@ package com.codexperiments.robolabor.task.util;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
 import java.util.AbstractMap;
+import java.util.HashMap;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import android.os.Process;
+
+import static java.util.Map.Entry;
 
 /**
  * TODO Comments
@@ -57,8 +60,12 @@ public class AutoCleanMap<TKey, TValue> extends AbstractMap<TKey, TValue> {
     }
 
     @Override
-    public Set<java.util.Map.Entry<TKey, TValue>> entrySet() {
-        throw new UnsupportedOperationException();
+    public Set<Entry<TKey, TValue>> entrySet() {
+        Set<Entry<TKey, TValue>> entrySet = new java.util.HashSet<>();
+        for (Entry<WeakKey<TKey>, WeakValue<TValue>> entry : mMap.entrySet()) {
+            entrySet.add(new HashMap.SimpleEntry<TKey, TValue>(entry.getKey().get(), entry.getValue().get()));
+        }
+        return entrySet;
     }
 
     private static class WeakKey<TKey> extends WeakReference<TKey> {

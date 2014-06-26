@@ -10,9 +10,10 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import com.codexperiments.robolabor.task.TaskRef;
+import com.codexperiments.robolabor.task.handler.Task;
 import com.codexperiments.robolabor.task.handler.TaskResult;
 
-public class BackgroundTaskResult implements TaskResult<Integer> {
+public class BackgroundTaskResult implements Task {
     private TaskRef<Integer> mTaskRef;
     private Boolean mCheckEmitterNull;
     private Integer mTaskResult;
@@ -34,7 +35,7 @@ public class BackgroundTaskResult implements TaskResult<Integer> {
         mTaskFinished = new CountDownLatch(1);
     }
 
-    public void onFinish(Integer pTaskResult) {
+    public void onFinish(/*Integer*/Object pTaskResult) {
         // Check if outer object reference has been restored (or not).
         if (mCheckEmitterNull != null) {
             if (mCheckEmitterNull) {
@@ -45,7 +46,7 @@ public class BackgroundTaskResult implements TaskResult<Integer> {
         }
 
         // Save result.
-        mTaskResult = pTaskResult;
+        mTaskResult = (Integer) pTaskResult;
         // Notify listeners that task execution is finished.
         assertThat(mTaskFinished.getCount(), equalTo(1l)); // Ensure termination handler is executed only once.
         mTaskFinished.countDown();
@@ -98,5 +99,10 @@ public class BackgroundTaskResult implements TaskResult<Integer> {
     @Override
     public String toString() {
         return "BackgroundTask [mTaskResult=" + mTaskResult + ", mTaskException=" + mTaskException + "]";
+    }
+
+    @Override
+    public TaskRef toRef() {
+        return null; // TODO
     }
 }

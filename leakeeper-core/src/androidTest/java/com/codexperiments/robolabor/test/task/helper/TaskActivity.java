@@ -12,6 +12,7 @@ import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 import android.widget.FrameLayout;
 import com.codexperiments.robolabor.task.TaskManager;
+import com.codexperiments.robolabor.task.handler.Task;
 import com.codexperiments.robolabor.task.handler.TaskIdentifiable;
 import com.codexperiments.robolabor.task.id.IntTaskId;
 import com.codexperiments.robolabor.test.common.TestApplicationContext;
@@ -23,7 +24,7 @@ public class TaskActivity extends FragmentActivity {
     private boolean mCheckEmitterNull;
     private boolean mStepByStep;
 
-    private TaskManager mTaskManager;
+    private TaskManager<Task> mTaskManager;
     private Integer mTaskResult;
     private Throwable mTaskException;
 
@@ -239,9 +240,9 @@ public class TaskActivity extends FragmentActivity {
         }
 
         @Override
-        public void onFinish(Integer pTaskResult) {
+        public void onFinish(/*Integer*/Object pTaskResult) {
             if (getEmitter() != null) {
-                mTaskResult = pTaskResult;
+                mTaskResult = (Integer) pTaskResult;
             }
             super.onFinish(pTaskResult);
         }
@@ -271,7 +272,7 @@ public class TaskActivity extends FragmentActivity {
 
     public class HierarchicalTask extends InnerTask {
         private BackgroundTask mInnerTask;
-        private TaskManager mTaskManager; // TODO Fix
+        private TaskManager<Task> mTaskManager; // TODO Fix
 
         public HierarchicalTask(final Integer pTaskResult, final Boolean pCheckEmitterNull, final boolean pStepByStep) {
             super(pTaskResult, pCheckEmitterNull, pStepByStep);
@@ -279,17 +280,19 @@ public class TaskActivity extends FragmentActivity {
         }
 
         @Override
-        public void onFinish(final Integer pTaskResult) {
-            mInnerTask = new InnerTask(pTaskResult + 1, getCheckEmitterNull(), getStepByStep()) {
+        public void onFinish(final /*Integer*/Object pTaskResult) {
+            final Integer lTaskResult = (Integer) pTaskResult;
+            mInnerTask = new InnerTask(lTaskResult + 1, getCheckEmitterNull(), getStepByStep()) {
                 @Override
-                public void onFinish(Integer pTaskResult) {
-                    super.onFinish((TaskActivity.this != null) ? ((pTaskResult << 8) | mTaskResult) : pTaskResult);
+                public void onFinish(/*Integer*/Object pTaskResult2) {
+                    Integer lTaskResult2 = (Integer) pTaskResult2;
+                    super.onFinish((TaskActivity.this != null) ? ((lTaskResult2 << 8) | mTaskResult) : lTaskResult2);
                 }
             };
             mInnerTask.setTaskRef(mTaskManager.execute(mInnerTask));
             new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
                 public void run() {
-                    mInnerTask.getTaskRef().onFinish(pTaskResult + 1);
+                    mInnerTask.getTaskRef().onFinish(lTaskResult + 1);
                 }
             }, 1000);
 
@@ -318,11 +321,11 @@ public class TaskActivity extends FragmentActivity {
         }
 
         @Override
-        public void onFinish(Integer pTaskResult) {
+        public void onFinish(/*Integer*/Object pTaskResult) {
             if (getEmitter() != null) {
-                mTaskResult = pTaskResult;
+                mTaskResult = (Integer) pTaskResult;
             }
-            super.onFinish(pTaskResult);
+            super.onFinish((Integer) pTaskResult);
         }
 
         @Override
@@ -348,24 +351,26 @@ public class TaskActivity extends FragmentActivity {
 
     public class HierarchicalTask_CorruptionBug extends InnerTask {
         private BackgroundTask mBackgroundTask2;
-        private TaskManager mTaskManager; // TODO Fix
+        private TaskManager<Task> mTaskManager; // TODO Fix
 
-        public HierarchicalTask_CorruptionBug(final Integer pTaskResult,
+        public HierarchicalTask_CorruptionBug(final /*Integer*/Object pTaskResult,
                                               final Boolean pCheckEmitterNull,
                                               final boolean pStepByStep)
         {
-            super(pTaskResult, pCheckEmitterNull, pStepByStep);
+            super((Integer) pTaskResult, pCheckEmitterNull, pStepByStep);
+            Integer lTaskResult = (Integer) pTaskResult;
             mTaskManager = TaskActivity.this.mTaskManager; // TODO Fix
-            mBackgroundTask2 = new InnerTask(pTaskResult + 1, pCheckEmitterNull, pStepByStep) {
+            mBackgroundTask2 = new InnerTask(lTaskResult + 1, pCheckEmitterNull, pStepByStep) {
                 @Override
-                public void onFinish(Integer pTaskResult) {
-                    super.onFinish((pTaskResult << 8) | mTaskResult);
+                public void onFinish(/*Integer*/Object pTaskResult2) {
+                    Integer lTaskResult2 = (Integer) pTaskResult2;
+                    super.onFinish((lTaskResult2 << 8) | mTaskResult);
                 }
             };
         }
 
         @Override
-        public void onFinish(Integer pTaskResult) {
+        public void onFinish(/*Integer*/Object pTaskResult) {
             getBackgroundTask2().setTaskRef(mTaskManager.execute(getBackgroundTask2()));
             super.onFinish(pTaskResult);
         }

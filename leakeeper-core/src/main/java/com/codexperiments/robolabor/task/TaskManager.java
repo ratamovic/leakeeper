@@ -68,16 +68,12 @@ import com.codexperiments.robolabor.task.handler.TaskResult;
  * Right before and after these handlers are invoked, emitters are respectively referenced and dereferenced to allow accessing the
  * outer class. If outer class is not available (e.g. if Activity has been destroyed but not recreated yet).
  */
-public interface TaskManager {
+public interface TaskManager<TCallback extends Task> {
     void manage(Object pEmitter);
 
     void unmanage(Object pEmitter);
 
-    <TParam, TResult> Task<TParam, TResult> execute(Task<TParam, TResult> pTask);
+    TCallback execute(TCallback pTask);
 
-    <TParam, TResult> Task<TParam, TResult> execute(Task<TParam, TResult> pTask, TaskResult<TResult> pTaskResult);
-
-    <TParam, TResult> boolean rebind(TaskRef<TResult> pTaskRef, TaskResult<TResult> pTaskResult);
-
-    void notifyProgress(/* TaskProgress pProgress */);
+    boolean rebind(TaskRef/*<TResult>*/ pTaskRef, TCallback pTaskResult);
 }

@@ -8,6 +8,8 @@ import android.view.ViewGroup;
 
 import android.widget.FrameLayout;
 import com.codexperiments.robolabor.task.TaskManager;
+import com.codexperiments.robolabor.task.handler.Task;
+import com.codexperiments.robolabor.task.handler.TaskResult;
 import com.codexperiments.robolabor.test.common.TestApplicationContext;
 
 public class TaskFragment extends Fragment {
@@ -16,7 +18,7 @@ public class TaskFragment extends Fragment {
     private boolean mCheckEmitterNull;
     private boolean mStepByStep;
 
-    private TaskManager mTaskManager;
+    private TaskManager<Task> mTaskManager;
     private Integer mTaskResult;
     private Throwable mTaskException;
 
@@ -102,9 +104,9 @@ public class TaskFragment extends Fragment {
         }
 
         @Override
-        public void onFinish(Integer pTaskResult) {
+        public void onFinish(/*Integer*/Object pTaskResult) {
             if (getEmitter() != null) {
-                mTaskResult = pTaskResult;
+                mTaskResult = (Integer) pTaskResult;
             }
             super.onFinish(pTaskResult);
         }

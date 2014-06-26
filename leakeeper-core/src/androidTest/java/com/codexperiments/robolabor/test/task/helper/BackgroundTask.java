@@ -10,12 +10,12 @@ import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
-public class BackgroundTask implements Task<Integer, Integer> {
+public class BackgroundTask implements Task/*<Integer, Integer>*/ {
     public static final int TASK_STEP_COUNT = 5;
     // At least one test must wait until this delay has ended. So please avoid increasing it except for debugging purpose.
     public static final int TASK_TIMEOUT_MS = 10000;
 
-    private Task<Integer, Integer> mTaskRef;
+    private Task/*<Integer, Integer>*/ mTaskRef;
     private Boolean mCheckEmitterNull;
     private boolean mStepByStep;
     private int mStepCounter;
@@ -67,7 +67,7 @@ public class BackgroundTask implements Task<Integer, Integer> {
 //    }
 
     @Override
-    public void onFinish(Integer pTaskResult) {
+    public void onFinish(/*Integer*/Object pTaskResult) {
         // Check if outer object reference has been restored (or not).
         if (mCheckEmitterNull != null) {
             if (mCheckEmitterNull) {
@@ -84,7 +84,7 @@ public class BackgroundTask implements Task<Integer, Integer> {
         }
 
         // Save result. TODO This is stupid since result is already initialized... Create a new variable.
-        mTaskResult = pTaskResult;
+        mTaskResult = (Integer) pTaskResult;
         // Notify listeners that task execution is finished.
         assertThat(mTaskFinished.getCount(), equalTo(1l)); // Ensure termination handler is executed only once.
         mTaskFinished.countDown();
@@ -172,11 +172,11 @@ public class BackgroundTask implements Task<Integer, Integer> {
         return mStepByStep;
     }
 
-    public Task<Integer, Integer> getTaskRef() {
+    public Task/*<Integer, Integer>*/ getTaskRef() {
         return mTaskRef;
     }
 
-    public void setTaskRef(Task<Integer, Integer> pTaskRef) {
+    public void setTaskRef(Task/*<Integer, Integer>*/ pTaskRef) {
         mTaskRef = pTaskRef;
     }
 
