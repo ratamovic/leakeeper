@@ -1,6 +1,6 @@
 package com.codexperiments.leakeeper.task.handler;
 
-public interface TaskResult/*<TResult>*/ extends TaskHandler {
+public interface TaskResult extends TaskHandler {
     /**
      * Handler method called when task computation has finished correctly. This method is called on the UI Thread. This is where
      * objects or components related to the UI should be updated (e.g. merging data with existing results on screens). It is safe

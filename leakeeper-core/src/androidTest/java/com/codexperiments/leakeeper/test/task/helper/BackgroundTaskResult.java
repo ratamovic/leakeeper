@@ -34,7 +34,7 @@ public class BackgroundTaskResult implements Task {
         mTaskFinished = new CountDownLatch(1);
     }
 
-    public void onFinish(/*Integer*/Object pTaskResult) {
+    public void onFinish(Object pTaskResult) {
         // Check if outer object reference has been restored (or not).
         if (mCheckEmitterNull != null) {
             if (mCheckEmitterNull) {

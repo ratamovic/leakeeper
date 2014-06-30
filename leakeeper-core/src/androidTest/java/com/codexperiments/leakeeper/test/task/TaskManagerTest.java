@@ -638,7 +638,7 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
     public void ignore_testRebind_inner_managed_nonExistingTask() throws Throwable {
         boolean lBound = mTaskManager.rebind(new TaskRef<Integer>(Integer.MAX_VALUE), new Task() {
             @Override
-            public void onFinish(/*Integer*/Object pTaskResult) {
+            public void onFinish(Object pTaskResult) {
             }
 
             @Override
@@ -688,8 +688,8 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
 
     public void testExecute_failure_notCalledFromUIThread() throws InterruptedException {
         try {
-            mTaskManager.execute(new Task/*<Void, Integer>*/() {
-                public void onFinish(/*Integer*/Object pTaskResult) {
+            mTaskManager.execute(new Task() {
+                public void onFinish(Object pTaskResult) {
                 }
 
                 public void onFail(Throwable pTaskException) {

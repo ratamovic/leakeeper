@@ -240,7 +240,7 @@ public class TaskActivity extends FragmentActivity {
         }
 
         @Override
-        public void onFinish(/*Integer*/Object pTaskResult) {
+        public void onFinish(Object pTaskResult) {
             if (getEmitter() != null) {
                 mTaskResult = (Integer) pTaskResult;
             }
@@ -280,11 +280,11 @@ public class TaskActivity extends FragmentActivity {
         }
 
         @Override
-        public void onFinish(final /*Integer*/Object pTaskResult) {
+        public void onFinish(final Object pTaskResult) {
             final Integer lTaskResult = (Integer) pTaskResult;
             mInnerTask = new InnerTask(lTaskResult + 1, getCheckEmitterNull(), getStepByStep()) {
                 @Override
-                public void onFinish(/*Integer*/Object pTaskResult2) {
+                public void onFinish(Object pTaskResult2) {
                     Integer lTaskResult2 = (Integer) pTaskResult2;
                     super.onFinish((TaskActivity.this != null) ? ((lTaskResult2 << 8) | mTaskResult) : lTaskResult2);
                 }
@@ -321,7 +321,7 @@ public class TaskActivity extends FragmentActivity {
         }
 
         @Override
-        public void onFinish(/*Integer*/Object pTaskResult) {
+        public void onFinish(Object pTaskResult) {
             if (getEmitter() != null) {
                 mTaskResult = (Integer) pTaskResult;
             }
@@ -353,7 +353,7 @@ public class TaskActivity extends FragmentActivity {
         private BackgroundTask mBackgroundTask2;
         private TaskManager<Task> mTaskManager; // TODO Fix
 
-        public HierarchicalTask_CorruptionBug(final /*Integer*/Object pTaskResult,
+        public HierarchicalTask_CorruptionBug(final Object pTaskResult,
                                               final Boolean pCheckEmitterNull,
                                               final boolean pStepByStep)
         {
@@ -362,7 +362,7 @@ public class TaskActivity extends FragmentActivity {
             mTaskManager = TaskActivity.this.mTaskManager; // TODO Fix
             mBackgroundTask2 = new InnerTask(lTaskResult + 1, pCheckEmitterNull, pStepByStep) {
                 @Override
-                public void onFinish(/*Integer*/Object pTaskResult2) {
+                public void onFinish(Object pTaskResult2) {
                     Integer lTaskResult2 = (Integer) pTaskResult2;
                     super.onFinish((lTaskResult2 << 8) | mTaskResult);
                 }
@@ -370,7 +370,7 @@ public class TaskActivity extends FragmentActivity {
         }
 
         @Override
-        public void onFinish(/*Integer*/Object pTaskResult) {
+        public void onFinish(Object pTaskResult) {
             getBackgroundTask2().setTaskRef(mTaskManager.execute(getBackgroundTask2()));
             super.onFinish(pTaskResult);
         }

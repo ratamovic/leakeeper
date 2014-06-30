@@ -103,7 +103,7 @@ public class TaskFragment extends Fragment {
         }
 
         @Override
-        public void onFinish(/*Integer*/Object pTaskResult) {
+        public void onFinish(Object pTaskResult) {
             if (getEmitter() != null) {
                 mTaskResult = (Integer) pTaskResult;
             }

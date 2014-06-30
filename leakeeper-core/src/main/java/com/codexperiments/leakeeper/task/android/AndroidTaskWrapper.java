@@ -3,17 +3,17 @@ package com.codexperiments.leakeeper.task.android;
 import com.codexperiments.leakeeper.task.TaskRef;
 import com.codexperiments.leakeeper.task.handler.Task;
 
-class AndroidTaskWrapper<TCallback extends Task> implements Task/*<TParam, TResult>*/ {
-    private final AndroidTaskManager<TCallback>.TaskContainer/*<TParam, TResult>*/ mContainer;
-    private final TaskRef/*<TResult>*/ mTaskRef;
+class AndroidTaskWrapper<TCallback extends Task> implements Task {
+    private final AndroidTaskManager<TCallback>.TaskContainer mContainer;
+    private final TaskRef mTaskRef;
 //    private final TaskResult<TResult> mTaskResult;
 
-    public static <TCallback extends Task> TCallback wrap(AndroidTaskManager<TCallback>.TaskContainer/*<TParam, TResult>*/ pContainer, TaskRef/*<TResult>*/ pTaskRef, TCallback pCallback) {
+    public static <TCallback extends Task> TCallback wrap(AndroidTaskManager<TCallback>.TaskContainer pContainer, TaskRef pTaskRef, TCallback pCallback) {
         // TODO XXX FIXME
         return (TCallback) new AndroidTaskWrapper<TCallback>(pContainer, pTaskRef, pCallback);
     }
 
-    private AndroidTaskWrapper(AndroidTaskManager<TCallback>.TaskContainer/*<TParam, TResult>*/ pContainer, TaskRef/*<TResult>*/ pTaskRef, TCallback pCallback) {
+    private AndroidTaskWrapper(AndroidTaskManager<TCallback>.TaskContainer pContainer, TaskRef pTaskRef, TCallback pCallback) {
         mContainer = pContainer;
         mTaskRef = pTaskRef;
 //        mTaskResult = pTaskResult;
@@ -32,7 +32,7 @@ class AndroidTaskWrapper<TCallback extends Task> implements Task/*<TParam, TResu
     }
 
     @Override
-    public TaskRef/*<TResult>*/ toRef() {
+    public TaskRef toRef() {
         return mTaskRef;
     }
 }

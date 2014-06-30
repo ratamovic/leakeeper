@@ -74,5 +74,5 @@ public interface TaskManager<TCallback extends Task> {
 
     TCallback execute(TCallback pTask);
 
-    boolean rebind(TaskRef/*<TResult>*/ pTaskRef, TCallback pTaskResult);
+    boolean rebind(TaskRef pTaskRef, TCallback pTaskResult);
 }
