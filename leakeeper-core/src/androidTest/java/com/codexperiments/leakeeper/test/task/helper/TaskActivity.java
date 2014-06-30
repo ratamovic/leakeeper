@@ -51,7 +51,6 @@ public class TaskActivity extends FragmentActivity {
     @Override
     protected void onCreate(Bundle pBundle) {
         super.onCreate(pBundle);
-        Log.e("*** onCreate", "YYY " + this);
         FrameLayout contentView = new FrameLayout(this);
         contentView.setId(getIntent().getIntExtra("ContentViewId", CONTENT_VIEW_ID));
         setContentView(contentView);
@@ -82,7 +81,6 @@ public class TaskActivity extends FragmentActivity {
     protected void onStart() {
         super.onStart();
         mTaskManager.manage(this);
-        Log.e("*** onStart", "CCC " + this);
         mDestroyedLatch = new CountDownLatch(1);
         mStartedLatch.countDown();
     }
@@ -90,14 +88,12 @@ public class TaskActivity extends FragmentActivity {
     @Override
     protected void onStop() {
         super.onStop();
-        Log.e("*** onStop", "DDD " + this);
         mTaskManager.unmanage(this);
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        Log.e("*** onDestroy", "EEE " + this);
         mDestroyedLatch.countDown();
     }
 

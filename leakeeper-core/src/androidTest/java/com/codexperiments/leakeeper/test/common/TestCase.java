@@ -1,6 +1,6 @@
 package com.codexperiments.leakeeper.test.common;
 
-import static java.lang.Thread.*;
+import static java.lang.Thread.sleep;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertThat;
@@ -19,33 +19,33 @@ import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.test.ActivityInstrumentationTestCase2;
 import android.util.Log;
+
+import com.codexperiments.leakeeper.test.task.AsyncTaskActivity;
+import com.codexperiments.leakeeper.test.task.AsyncTaskTest;
 import com.codexperiments.leakeeper.test.task.helper.TaskActivity;
 
-public class TestCase<TActivity extends Activity> extends ActivityInstrumentationTestCase2<TActivity>
-{
+public class TestCase<TActivity extends Activity> extends ActivityInstrumentationTestCase2<TActivity> {
     private Class<?> mActivityClass;
     private TestApplication mApplication;
     private TestApplicationContext mApplicationContext;
 
-    public TestCase(Class<TActivity> pActivityClass)
-    {
+    public TestCase(Class<TActivity> pActivityClass) {
         super(pActivityClass);
     }
 
     @Override
-    protected void setUp() throws Exception
-    {
+    protected void setUp() throws Exception {
         super.setUp();
+        // Patch for Mockito bug: https://code.google.com/p/dexmaker/issues/detail?id=2
+        System.setProperty("dexmaker.dexcache", getInstrumentation().getTargetContext().getCacheDir().getPath());
 
         mApplication = TestApplication.getInstance(this);
         mApplicationContext = mApplication.provideContext();
 
         // Execute initialization code on UI Thread.
-        Log.e("=====", "setup");
         final List<Exception> lThrowableHolder = new ArrayList<Exception>(1);
         getInstrumentation().runOnMainSync(new Runnable() {
-            public void run()
-            {
+            public void run() {
                 try {
                     setUpOnUIThread();
                 } catch (Exception eException) {
@@ -53,7 +53,6 @@ public class TestCase<TActivity extends Activity> extends ActivityInstrumentatio
                 }
             }
         });
-        Log.e("=====", "setup2");
         // If an exception occurred during UI Thread initialization, re-throw the exception.
         if (lThrowableHolder.size() > 0) {
             throw lThrowableHolder.get(0);
@@ -61,9 +60,7 @@ public class TestCase<TActivity extends Activity> extends ActivityInstrumentatio
     }
 
     @Override
-    protected void tearDown() throws Exception
-    {
-        Log.e("=====", "tearDown");
+    protected void tearDown() throws Exception {
         super.tearDown();
         mApplication.setCurrentActivity(null);
         mApplicationContext.removeManagers();
@@ -71,8 +68,7 @@ public class TestCase<TActivity extends Activity> extends ActivityInstrumentatio
 
     @Override
     @SuppressWarnings("unchecked")
-    public TActivity getActivity()
-    {
+    public TActivity getActivity() {
         Activity lActivity = mApplication.getCurrentActivity();
         if (lActivity == null) {
             TActivity lNewActivity = super.getActivity();
@@ -83,29 +79,25 @@ public class TestCase<TActivity extends Activity> extends ActivityInstrumentatio
             if (mActivityClass.isInstance(lActivity)) {
                 return (TActivity) lActivity;
             } else {
-                throw TestException.wrongActivity(lActivity);
+                throw new RuntimeException(String.format("Wrong Activity type retrieved (%1$s).", lActivity.getClass()));
             }
         }
     }
 
-    public TActivity getActivity(Intent pIntent)
-    {
+    public TActivity getActivity(Intent pIntent) {
         setActivityIntent(pIntent);
         return getActivity();
     }
 
     @SuppressWarnings("unchecked")
-    public <TOtherActivity extends Activity> TOtherActivity getOtherActivity(Class<TOtherActivity> pOtherActivityClass)
-    {
+    public <TOtherActivity extends Activity> TOtherActivity getOtherActivity(Class<TOtherActivity> pOtherActivityClass) {
         return (TOtherActivity) mApplication.getCurrentActivity();
     }
 
-    protected void setUpOnUIThread() throws Exception
-    {
+    protected void setUpOnUIThread() throws Exception {
     }
 
-    protected void rotateActivitySeveralTimes(int pCount) throws InterruptedException
-    {
+    protected void rotateActivitySeveralTimes(int pCount) throws InterruptedException {
         for (int i = 0; i < pCount; ++i) {
             // Wait some time before turning.
             sleep(500);
@@ -113,7 +105,6 @@ public class TestCase<TActivity extends Activity> extends ActivityInstrumentatio
             Resources lResources = getInstrumentation().getTargetContext().getResources();
             Configuration lConfiguration = lResources.getConfiguration();
             TaskActivity lCurrentActivity = (TaskActivity) mApplication.getCurrentActivity();
-            Log.e("*** ROTATE_START", "AAA " + lCurrentActivity);
             lCurrentActivity.waitStarted();
             if (lConfiguration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
                 lCurrentActivity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
@@ -127,42 +118,39 @@ public class TestCase<TActivity extends Activity> extends ActivityInstrumentatio
                 sleep(1);
                 lNewActivity = (TaskActivity) mApplication.getCurrentActivity();
             }
-            Log.e("*** ROTATE_END", "BBB " + lNewActivity);
             assertThat(lNewActivity, not(equalTo(lCurrentActivity)));
             lNewActivity.waitStarted();
         }
     }
 
-    protected TActivity terminateActivity(TActivity pActivity) throws InterruptedException
-    {
+    protected TActivity terminateActivity(TActivity pActivity) throws InterruptedException {
         pActivity.finish();
         setActivity(null);
         mApplication.setCurrentActivity(null);
         if (pActivity instanceof TaskActivity) {
             ((TaskActivity) pActivity).waitTerminated();
         }
+        if (pActivity instanceof AsyncTaskActivity) {
+            assertThat(((AsyncTaskActivity) pActivity).waitTerminated(), equalTo(true));
+        }
         return null;
     }
 
-    protected void garbageCollect() throws InterruptedException
-    {
+    protected void garbageCollect() throws InterruptedException {
         for (int i = 0; i < 3; ++i) {
             System.gc();
             getInstrumentation().runOnMainSync(new Runnable() {
-                public void run()
-                {
+                public void run() {
                     System.gc();
                 }
             });
         }
     }
 
-    protected boolean isServiceRunning(final Class<?> pServiceClass)
-    {
+    protected boolean isServiceRunning(final Class<?> pServiceClass) {
         final AtomicBoolean lResult = new AtomicBoolean();
         getInstrumentation().runOnMainSync(new Runnable() {
-            public void run()
-            {
+            public void run() {
                 ActivityManager lManager = (ActivityManager) mApplication.getApplication().getSystemService(Context.ACTIVITY_SERVICE);
                 for (RunningServiceInfo service : lManager.getRunningServices(Integer.MAX_VALUE)) {
                     if (pServiceClass.getName().equals(service.service.getClassName())) {
@@ -174,13 +162,11 @@ public class TestCase<TActivity extends Activity> extends ActivityInstrumentatio
         return lResult.get();
     }
 
-    public TestApplication getApplication()
-    {
+    public TestApplication getApplication() {
         return mApplication;
     }
 
-    public TestApplicationContext getApplicationContext()
-    {
+    public TestApplicationContext getApplicationContext() {
         return mApplicationContext;
     }
 }

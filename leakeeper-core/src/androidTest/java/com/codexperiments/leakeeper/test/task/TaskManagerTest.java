@@ -10,6 +10,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import android.test.UiThreadTest;
 
+import android.test.suitebuilder.annotation.Suppress;
 import android.util.Log;
 import com.codexperiments.leakeeper.task.TaskManagerConfig;
 import com.codexperiments.leakeeper.task.TaskRef;
@@ -25,12 +26,14 @@ import com.codexperiments.leakeeper.test.task.helper.TaskActivity;
 import com.codexperiments.leakeeper.test.task.helper.TaskActivity.HierarchicalTask;
 import com.codexperiments.leakeeper.test.task.helper.TaskEmitter;
 import com.codexperiments.leakeeper.test.task.helper.TaskFragment;
+import org.junit.Ignore;
 
 /**
  * TODO Failure cases.
- * 
+ *
  * TODO keepResultOnHold cases.
  */
+//@Suppress
 public class TaskManagerTest extends TestCase<TaskActivity> {
     private Integer mTaskId;
     private Integer mTaskResult;
@@ -59,7 +62,6 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
     @Override
     protected void setUpOnUIThread() throws Exception {
         super.setUpOnUIThread();
-        Log.e("=====", "setUpOnUIThread");
         TaskManagerConfig lConfig = new AndroidTaskManagerConfig(getApplication().getApplication());
         mTaskManager = new AndroidTaskManager(getApplication().getApplication(), lConfig, TaskResult.class);
         getApplicationContext().registerManager(mTaskManager);
