@@ -101,6 +101,7 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
         assertThat(lTask.getTaskException(), nullValue());
     }
 
+    // DONE
     public void testExecute_inner_managed_persisting_activity() throws InterruptedException {
         TaskActivity lInitialActivity = getActivity();
         final BackgroundTask lTask = lInitialActivity.runInnerTask(mTaskResult);
@@ -115,6 +116,7 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
         assertThat(lInitialActivity.getTaskException(), nullValue());
     }
 
+    // DONE
     public void testExecute_inner_managed_recreated_activity() throws InterruptedException {
         TaskActivity lInitialActivity = getActivity();
         final BackgroundTask lTask = lInitialActivity.runInnerTask(mTaskResult);
@@ -132,6 +134,7 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
         assertThat(lFinalActivity.getTaskException(), nullValue());
     }
 
+    // DONE
     public void testExecute_inner_managed_destroyed_activity() throws InterruptedException {
         TaskActivity lInitialActivity = getActivity(TaskActivity.dying());
         final BackgroundTask lTask = lInitialActivity.runInnerTask(mTaskResult);
@@ -639,17 +642,22 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
     @UiThreadTest
     public void ignore_testRebind_inner_managed_nonExistingTask() throws Throwable {
         boolean lBound = mTaskManager.rebind(new TaskRef<Integer>(Integer.MAX_VALUE), new Task() {
-            @Override
             public void onFinish(Object pTaskResult) {
             }
 
-            @Override
             public void onFail(Throwable pTaskException) {
             }
 
-            @Override
             public TaskRef toRef() {
                 return null;
+            }
+
+            public void guard() {
+                throw new IllegalAccessError();
+            }
+
+            public boolean unguard() {
+                throw new IllegalAccessError();
             }
         });
         assertThat(lBound, equalTo(false));
@@ -699,6 +707,14 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
 
                 public TaskRef<Integer> toRef() {
                     return null;
+                }
+
+                public void guard() {
+                    throw new IllegalAccessError();
+                }
+
+                public boolean unguard() {
+                    throw new IllegalAccessError();
                 }
             });
             fail();

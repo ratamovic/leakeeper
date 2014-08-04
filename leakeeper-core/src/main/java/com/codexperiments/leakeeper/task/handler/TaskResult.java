@@ -19,8 +19,6 @@ public interface TaskResult extends TaskHandler {
      * outer class from here.
      * 
      * TODO Explain what happen if reference is not restored.
-     * 
-     * @param pTaskManager Use this TaskManager to perform any operation from the handler.
      */
     void onFail(Throwable pException);
 }

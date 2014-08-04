@@ -198,4 +198,14 @@ public class BackgroundTask implements Task {
         return "BackgroundTask [mTaskResult=" + mTaskResult + ", mTaskException=" + mTaskException + ", mStepCounter="
                         + mStepCounter + "]";
     }
+
+    @Override
+    public void guard() {
+        throw new IllegalAccessError();
+    }
+
+    @Override
+    public boolean unguard() {
+        throw new IllegalAccessError();
+    }
 }

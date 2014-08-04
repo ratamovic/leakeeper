@@ -104,4 +104,14 @@ public class BackgroundTaskResult implements Task {
     public TaskRef toRef() {
         return null; // TODO
     }
+
+    @Override
+    public void guard() {
+        throw new IllegalAccessError();
+    }
+
+    @Override
+    public boolean unguard() {
+        throw new IllegalAccessError();
+    }
 }

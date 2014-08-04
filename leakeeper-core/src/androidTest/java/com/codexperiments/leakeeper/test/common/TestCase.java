@@ -18,10 +18,8 @@ import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.test.ActivityInstrumentationTestCase2;
-import android.util.Log;
 
 import com.codexperiments.leakeeper.test.task.AsyncTaskActivity;
-import com.codexperiments.leakeeper.test.task.AsyncTaskTest;
 import com.codexperiments.leakeeper.test.task.helper.TaskActivity;
 
 public class TestCase<TActivity extends Activity> extends ActivityInstrumentationTestCase2<TActivity> {
@@ -123,6 +121,35 @@ public class TestCase<TActivity extends Activity> extends ActivityInstrumentatio
         }
     }
 
+    // TODO Refactor generics and give more flexibility on the lifecycle.
+    protected AsyncTaskActivity recreateActivity() throws InterruptedException {
+        // Wait some time before turning.
+        sleep(500);
+
+        // When activity is started, rotate it.
+        Resources resources = getInstrumentation().getTargetContext().getResources();
+        AsyncTaskActivity initialActivity = (AsyncTaskActivity) mApplication.getCurrentActivity();
+        initialActivity.waitStarted();
+        if (resources.getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            initialActivity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+        } else {
+            initialActivity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+        }
+
+        // When activity is terminated, get the new activity reference.
+        initialActivity.waitTerminated();
+        AsyncTaskActivity newActivity = (AsyncTaskActivity) mApplication.getCurrentActivity();
+        while (newActivity == initialActivity) {
+            sleep(1);
+            newActivity = (AsyncTaskActivity) mApplication.getCurrentActivity();
+        }
+        setActivity(newActivity);
+
+        // Wait for the new activity to be started.
+        newActivity.waitStarted();
+        return newActivity;
+    }
+
     protected TActivity terminateActivity(TActivity pActivity) throws InterruptedException {
         pActivity.finish();
         setActivity(null);
@@ -138,6 +165,7 @@ public class TestCase<TActivity extends Activity> extends ActivityInstrumentatio
 
     protected void garbageCollect() throws InterruptedException {
         for (int i = 0; i < 3; ++i) {
+            Thread.sleep(100);
             System.gc();
             getInstrumentation().runOnMainSync(new Runnable() {
                 public void run() {

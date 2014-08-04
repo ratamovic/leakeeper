@@ -1,9 +1,10 @@
 package com.codexperiments.leakeeper.task.android;
 
+import com.codexperiments.leakeeper.task.LeakContainer;
 import com.codexperiments.leakeeper.task.TaskRef;
 import com.codexperiments.leakeeper.task.handler.Task;
 
-class AndroidTaskWrapper<TCallback extends Task> implements Task {
+class AndroidTaskWrapper<TCallback extends Task> implements Task, LeakContainer {
     private final AndroidTaskManager<TCallback>.TaskContainer mContainer;
     private final TaskRef mTaskRef;
 //    private final TaskResult<TResult> mTaskResult;
@@ -17,6 +18,16 @@ class AndroidTaskWrapper<TCallback extends Task> implements Task {
         mContainer = pContainer;
         mTaskRef = pTaskRef;
 //        mTaskResult = pTaskResult;
+    }
+
+    @Override
+    public void guard() {
+        mContainer.guard();
+    }
+
+    @Override
+    public boolean unguard() {
+        return mContainer.unguard();
     }
 
     @Override

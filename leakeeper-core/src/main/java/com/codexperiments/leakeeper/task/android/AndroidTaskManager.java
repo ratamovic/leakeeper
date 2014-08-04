@@ -24,6 +24,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import android.app.Application;
 import android.os.Looper;
 
+import com.codexperiments.leakeeper.task.LeakContainer;
 import com.codexperiments.leakeeper.task.TaskManager;
 import com.codexperiments.leakeeper.task.TaskManagerConfig;
 import com.codexperiments.leakeeper.task.TaskRef;
@@ -229,7 +230,7 @@ public class AndroidTaskManager<TCallback extends Task> implements TaskManager<T
     /**
      * Wrapper class that contains all the information about the task to execute.
      */
-    /*private*/ class TaskContainer implements Runnable {
+    /*private*/ class TaskContainer implements Runnable, LeakContainer {
         // Handlers
         private Task mTask;
 
@@ -259,6 +260,18 @@ public class AndroidTaskManager<TCallback extends Task> implements TaskManager<T
             mThrowable = null;
             mRunning = true;
             mFinished = false;
+        }
+
+        @Override
+        public void guard() {
+            mRunning = true;
+            mDescriptor.dereferenceEmitter();
+        }
+
+        @Override
+        public boolean unguard() {
+            mRunning = false;
+            return mDescriptor.referenceEmitter(false);
         }
 
         /**
@@ -335,6 +348,7 @@ public class AndroidTaskManager<TCallback extends Task> implements TaskManager<T
 //                });
 //            }
         }
+
         public void doFinish(Object/*TResult*/ pResult) {
             mRunning = false;
             mResult = pResult;
@@ -687,7 +701,7 @@ public class AndroidTaskManager<TCallback extends Task> implements TaskManager<T
          * @return True if restoration was performed properly. This may be false if a previously managed object become unmanaged
          *         meanwhile.
          */
-        private boolean referenceEmitter(boolean pRollbackOnFailure) {
+        protected/*private*/ boolean referenceEmitter(boolean pRollbackOnFailure) {
             // Try to restore emitters in parent containers first. Everything is rolled-back if referencing fails.
             if (mParentDescriptors != null) {
                 for (TaskDescriptor lParentDescriptor : mParentDescriptors) {
@@ -736,7 +750,7 @@ public class AndroidTaskManager<TCallback extends Task> implements TaskManager<T
         /**
          * Remove emitter references from the task handler. Called after each task handler is executed to avoid memory leaks.
          */
-        private void dereferenceEmitter() {
+        protected/*private*/ void dereferenceEmitter() {
             // Try to dereference emitters in parent containers first.
             if (mParentDescriptors != null) {
                 for (TaskDescriptor lParentDescriptor : mParentDescriptors) {
