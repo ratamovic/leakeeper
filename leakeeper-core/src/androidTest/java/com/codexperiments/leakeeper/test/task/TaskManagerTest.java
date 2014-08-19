@@ -242,6 +242,7 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
         assertThat(lTask.getTaskException(), nullValue());
     }
 
+    // DONE
     public void testExecute_inner_hierarchical_persisting() throws InterruptedException {
         TaskActivity lInitialActivity = getActivity();
         final HierarchicalTask lTask = lInitialActivity.runHierarchicalTask(mTaskResult);
@@ -258,6 +259,7 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
         assertThat(lInitialActivity.getTaskException(), nullValue());
     }
 
+    // DONE
     public void testExecute_inner_hierarchical_recreated() throws InterruptedException {
         TaskActivity lInitialActivity = getActivity();
         final HierarchicalTask lTask = lInitialActivity.runHierarchicalTask(mTaskResult);
@@ -278,6 +280,7 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
         assertThat(lFinalActivity.getTaskException(), nullValue());
     }
 
+    // DONE
     public void testExecute_inner_hierarchical_destroyed() throws InterruptedException {
         TaskActivity lInitialActivity = getActivity(TaskActivity.dying());
         final HierarchicalTask lTask = lInitialActivity.runHierarchicalTask(mTaskResult);
@@ -295,6 +298,7 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
         assertThat(lTask.getTaskException(), nullValue());
     }
 
+    // DONE
     public void testExecute_static_managed_persisting() throws InterruptedException {
         TaskActivity lInitialActivity = getActivity();
         final BackgroundTask lTask = lInitialActivity.runStaticTask(mTaskResult);
@@ -311,6 +315,7 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
         assertThat(lTask.getTaskException(), nullValue());
     }
 
+    // DONE
     public void testExecute_static_managed_recreated() throws InterruptedException {
         TaskActivity lInitialActivity = getActivity();
         final BackgroundTask lTask = lInitialActivity.runStaticTask(mTaskResult);
@@ -330,6 +335,7 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
         assertThat(lTask.getTaskException(), nullValue());
     }
 
+    // DONE
     public void testExecute_static_managed_destroyed() throws InterruptedException {
         TaskActivity lInitialActivity = getActivity(TaskActivity.dying());
         final BackgroundTask lTask = lInitialActivity.runStaticTask(mTaskResult);
@@ -345,6 +351,7 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
         assertThat(lTask.getTaskException(), nullValue());
     }
 
+    // DONE
     public void testExecute_standard_managed_persisting() throws InterruptedException {
         TaskActivity lInitialActivity = getActivity();
         final BackgroundTask lTask = lInitialActivity.runStandardTask(mTaskResult);
@@ -361,6 +368,7 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
         assertThat(lTask.getTaskException(), nullValue());
     }
 
+    // DONE
     public void testExecute_standard_managed_recreated() throws InterruptedException {
         TaskActivity lInitialActivity = getActivity();
         final BackgroundTask lTask = lInitialActivity.runStandardTask(mTaskResult);
@@ -380,6 +388,7 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
         assertThat(lTask.getTaskException(), nullValue());
     }
 
+    // DONE
     public void testExecute_standard_managed_destroyed() throws InterruptedException {
         TaskActivity lInitialActivity = getActivity(TaskActivity.dying());
         final BackgroundTask lTask = lInitialActivity.runStandardTask(mTaskResult);
@@ -395,6 +404,7 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
         assertThat(lTask.getTaskException(), nullValue());
     }
 
+    // DONE
     public void testExecute_severalTasks_serial_withDifferentIds() throws InterruptedException {
         TaskActivity lInitialActivity = getActivity();
         final BackgroundTask lTask = lInitialActivity.runInnerTaskWithId(nextId(), mTaskResult);
@@ -417,6 +427,7 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
         assertThat(lInitialActivity.getTaskException(), nullValue());
     }
 
+    // DONE
     public void testExecute_severalTasks_serial_withSameId() throws InterruptedException {
         TaskActivity lInitialActivity = getActivity();
         final BackgroundTask lTask = lInitialActivity.runInnerTaskWithId(nextId(), mTaskResult);
@@ -446,6 +457,7 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
         assertThat(lInitialActivity.getTaskException(), nullValue());
     }
 
+    // DONE
     public void testExecute_severalTasks_serial_withAndWithoutId() throws InterruptedException {
         TaskActivity lInitialActivity = getActivity();
         final BackgroundTask lTask = lInitialActivity.runInnerTaskWithId(nextId(), mTaskResult);
@@ -468,6 +480,7 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
         assertThat(lInitialActivity.getTaskException(), nullValue());
     }
 
+    // DONE
     public void testExecute_severalTasks_serial_withoutAndWithId() throws InterruptedException {
         TaskActivity lInitialActivity = getActivity();
         final BackgroundTask lTask = lInitialActivity.runInnerTask(mTaskResult);
@@ -490,6 +503,7 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
         assertThat(lInitialActivity.getTaskException(), nullValue());
     }
 
+    // DONE
     public void testExecute_reuseTask() throws Throwable {
         TaskActivity lInitialActivity = getActivity();
         final BackgroundTask lTask = lInitialActivity.runInnerTask(mTaskResult);
@@ -519,6 +533,7 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
         assertThat(lFailure.get(), equalTo(true));
     }
 
+    // DONE
     public void testExecute_persisting_failure() throws InterruptedException {
         final Exception lTaskException = new Exception("Something happened");
         TaskActivity lInitialActivity = getActivity();
@@ -534,6 +549,7 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
         assertThat(lInitialActivity.getTaskException(), sameInstance((Throwable) lTaskException));
     }
 
+    // DONE
     public void testExecute_recreated_failure() throws InterruptedException {
         final Exception lTaskException = new Exception("Something happened");
         TaskActivity lInitialActivity = getActivity();
@@ -552,7 +568,8 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
         assertThat(lFinalActivity.getTaskException(), sameInstance((Throwable) lTaskException));
     }
 
-    public void testExecute_recreated_destroyed() throws InterruptedException {
+    // DONE
+    public void testExecute_destroyed_failure() throws InterruptedException {
         final Exception lTaskException = new Exception("Something happened");
         TaskActivity lInitialActivity = getActivity(TaskActivity.dying());
         final BackgroundTask lTask = lInitialActivity.runInnerTask(lTaskException);
@@ -568,6 +585,7 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
         assertThat(lTask.getTaskException(), sameInstance((Throwable) lTaskException));
     }
 
+    // TODO
     public void testRebind_inner_managed_persisting() throws InterruptedException {
         TaskActivity lInitialActivity = getActivity();
         final BackgroundTask lTask = lInitialActivity.runInnerTask(mTaskResult);
@@ -585,6 +603,7 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
         assertThat(lTaskResult.getTaskException(), nullValue());
     }
 
+    // TODO
     public void testRebind_inner_managed_recreated() throws InterruptedException {
         TaskActivity lInitialActivity = getActivity();
         final BackgroundTask lTask = lInitialActivity.runInnerTask(mTaskResult);
@@ -606,6 +625,7 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
         assertThat(lTaskResult.getTaskException(), nullValue());
     }
 
+    // TODO
     public void testRebind_inner_managed_destroyed() throws InterruptedException {
         TaskActivity lInitialActivity = getActivity(TaskActivity.dying());
         final BackgroundTask lTask = lInitialActivity.runInnerTask(mTaskResult);
@@ -623,6 +643,7 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
         assertThat(lTaskResult.getTaskException(), nullValue());
     }
 
+    // TODO
     public void testRebind_inner_managed_afterTaskEnded() throws InterruptedException {
         TaskActivity lInitialActivity = getActivity();
         final BackgroundTask lTask = lInitialActivity.runInnerTask(mTaskResult);
@@ -639,6 +660,7 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
         assertThat(lTaskResult.getTaskException(), nullValue());
     }
 
+    // TODO
     @UiThreadTest
     public void ignore_testRebind_inner_managed_nonExistingTask() throws Throwable {
         boolean lBound = mTaskManager.rebind(new TaskRef<Integer>(Integer.MAX_VALUE), new Task() {
@@ -663,6 +685,7 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
         assertThat(lBound, equalTo(false));
     }
 
+    // TODO
     @UiThreadTest
     public void testExecute_failure_taskNull() throws InterruptedException {
         try {
@@ -696,6 +719,7 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
         }
     }
 
+    // TODO
     public void testExecute_failure_notCalledFromUIThread() throws InterruptedException {
         try {
             mTaskManager.execute(new Task() {
@@ -758,6 +782,7 @@ public class TaskManagerTest extends TestCase<TaskActivity> {
     /**
      * Bug that causes hierarchical tasks to corrupt emitter list. Shouldn't occur anymore.
      */
+    // TODO
     public void testExecute_inner_hierarchical_corruptionBug() throws InterruptedException {
         TaskActivity lInitialActivity = getActivity();
         final TaskActivity.HierarchicalTask_CorruptionBug lTask = lInitialActivity.runHierarchicalTask_corruptionBug(mTaskResult);

@@ -1,30 +1,25 @@
 package com.codexperiments.leakeeper.test.task;
 
-import static com.codexperiments.leakeeper.test.task.AsyncTaskActivity.TWO_STEPS;
-import static com.codexperiments.leakeeper.test.task.AsyncTaskActivity.expectedResult;
-import static com.codexperiments.leakeeper.test.task.AsyncTaskActivity.someInputData;
-import static com.codexperiments.leakeeper.test.task.AsyncTaskActivity.unmanaged;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
-
 import android.app.Activity;
 import android.app.Fragment;
-
 import com.codexperiments.leakeeper.task.TaskManagerConfig;
 import com.codexperiments.leakeeper.task.android.AndroidTaskManager;
 import com.codexperiments.leakeeper.task.android.AndroidTaskManagerConfig;
 import com.codexperiments.leakeeper.task.handler.TaskResult;
 import com.codexperiments.leakeeper.test.common.TestCase;
-import com.codexperiments.leakeeper.test.task.AsyncTaskActivity.InnerAsyncTask;
 import com.codexperiments.leakeeper.test.task.helper.ValueHolder;
+import com.codexperiments.leakeeper.test.task.helpers.AsyncTaskActivityMock;
+import com.codexperiments.leakeeper.test.task.helpers.AsyncTaskMock;
 
-public class AsyncTaskTest extends TestCase<AsyncTaskActivity> {
+import static com.codexperiments.leakeeper.test.task.helpers.AsyncTaskActivityMock.*;
+import static org.hamcrest.Matchers.*;
+import static org.junit.Assert.assertThat;
+
+public class AsyncTaskTest extends TestCase<AsyncTaskActivityMock> {
     private AndroidTaskManager mTaskManager;
 
     public AsyncTaskTest() {
-        super(AsyncTaskActivity.class);
+        super(AsyncTaskActivityMock.class);
     }
 
     @Override
@@ -38,7 +33,7 @@ public class AsyncTaskTest extends TestCase<AsyncTaskActivity> {
     }
 
     //region Given
-    private AsyncTaskActivity givenActivityManaged() {
+    private AsyncTaskActivityMock givenActivityManaged() {
         getInstrumentation().runOnMainSync(new Runnable() {
             public void run() {
                 TaskManagerConfig config = new AndroidTaskManagerConfig(getApplication().getApplication());
@@ -49,7 +44,7 @@ public class AsyncTaskTest extends TestCase<AsyncTaskActivity> {
         return getActivity();
     }
 
-    private AsyncTaskActivity givenActivityUnmanaged() {
+    private AsyncTaskActivityMock givenActivityUnmanaged() {
         getInstrumentation().runOnMainSync(new Runnable() {
             public void run() {
                 TaskManagerConfig taskManagerConfig = new AndroidTaskManagerConfig(getApplication().getApplication()) {
@@ -82,16 +77,161 @@ public class AsyncTaskTest extends TestCase<AsyncTaskActivity> {
     //endregion
 
 
-    //region Unanaged activity tests
-    public void testExecute_innerAsyncTask_activity_unmanaged_normal() throws InterruptedException {
+    //region Classic class tests
+    public void testExecute_classicTask_activity_unmanaged_normal() {
+        testExecute_activity_unmanaged_normal(classicTaskFactory());
+    }
+
+    public void testExecute_classicTask_activity__unmanaged_destroyedAndCollected() {
+        testExecute_activity__unmanaged_destroyedAndCollected(classicTaskFactory());
+    }
+
+    public void testExecute_classicTask_activity_managed_normal() {
+        testExecute_activity_managed_normal(classicTaskFactory());
+    }
+
+    public void testExecute_classicTask_activity_managed_destroyedAndCollected() {
+        testExecute_activity_managed_destroyedAndCollected(classicTaskFactory());
+    }
+    //endregion
+
+
+    //region Static class tests
+    public void testExecute_staticTask_activity_unmanaged_normal() {
+        testExecute_activity_unmanaged_normal(staticTaskFactory());
+    }
+
+    public void testExecute_staticTask_activity__unmanaged_destroyedAndCollected() {
+        testExecute_activity__unmanaged_destroyedAndCollected(staticTaskFactory());
+    }
+
+    public void testExecute_staticTask_activity_managed_normal() {
+        testExecute_activity_managed_normal(staticTaskFactory());
+    }
+
+    public void testExecute_staticTask_activity_managed_destroyedAndCollected() {
+        testExecute_activity_managed_destroyedAndCollected(staticTaskFactory());
+    }
+    //endregion
+
+
+    //region Inner class tests
+    public void testExecute_innerTask_activity_unmanaged_normal() {
+        testExecute_activity_unmanaged_normal(innerTaskFactory());
+    }
+
+    public void testExecute_innerTask_activity_unmanaged_destroyedButNotCollected() {
+        testExecute_activity_unmanaged_destroyedButNotCollected(innerTaskFactory());
+    }
+
+    public void testExecute_innerTask_activity__unmanaged_destroyedAndCollected() {
+        testExecute_activity__unmanaged_destroyedAndCollected(innerTaskFactory());
+    }
+
+    public void testExecute_innerTask_activity_managed_normal() {
+        testExecute_activity_managed_normal(innerTaskFactory());
+    }
+
+    public void testExecute_innerTask_activity_managed_destroyed() {
+        testExecute_activity_managed_destroyed(innerTaskFactory());
+    }
+
+    public void testExecute_innerTask_activity_managed_recreated() {
+        testExecute_activity_managed_recreated(innerTaskFactory());
+    }
+    //endregion
+
+
+    //region Anonymous class tests
+    public void testExecute_anonymousTask_activity_unmanaged_normal() {
+        testExecute_activity_unmanaged_normal(anonymousTaskFactory());
+    }
+
+    public void testExecute_anonymousTask_activity_unmanaged_destroyedButNotCollected() {
+        testExecute_activity_unmanaged_destroyedButNotCollected(anonymousTaskFactory());
+    }
+
+    public void testExecute_anonymousTask_activity__unmanaged_destroyedAndCollected() {
+        testExecute_activity__unmanaged_destroyedAndCollected(anonymousTaskFactory());
+    }
+
+    public void testExecute_anonymousTask_activity_managed_normal() {
+        testExecute_activity_managed_normal(anonymousTaskFactory());
+    }
+
+    public void testExecute_anonymousTask_activity_managed_destroyed() {
+        testExecute_activity_managed_destroyed(anonymousTaskFactory());
+    }
+
+    public void testExecute_anonymousTask_activity_managed_recreated() {
+        testExecute_activity_managed_recreated(anonymousTaskFactory());
+    }
+    //endregion
+
+
+    //region Local class tests
+    public void testExecute_localTask_activity_unmanaged_normal() {
+        testExecute_activity_unmanaged_normal(localTaskFactory());
+    }
+
+    public void testExecute_localTask_activity_unmanaged_destroyedButNotCollected() {
+        testExecute_activity_unmanaged_destroyedButNotCollected(localTaskFactory());
+    }
+
+    public void testExecute_localTask_activity__unmanaged_destroyedAndCollected() {
+        testExecute_activity__unmanaged_destroyedAndCollected(localTaskFactory());
+    }
+
+    public void testExecute_localTask_activity_managed_normal() {
+        testExecute_activity_managed_normal(localTaskFactory());
+    }
+
+    public void testExecute_localTask_activity_managed_destroyed() {
+        testExecute_activity_managed_destroyed(localTaskFactory());
+    }
+
+    public void testExecute_localTask_activity_managed_recreated() {
+        testExecute_activity_managed_recreated(localTaskFactory());
+    }
+    //endregion
+
+
+    //region Hierarchical inner class tests
+    public void testExecute_hierarchicalTask_activity_unmanaged_normal() {
+        testExecute_activity_unmanaged_normal(hierarchicalTaskFactory());
+    }
+
+    public void testExecute_hierarchicalTask_activity_unmanaged_destroyedButNotCollected() {
+        testExecute_activity_unmanaged_destroyedButNotCollected(hierarchicalTaskFactory());
+    }
+
+    public void testExecute_hierarchicalTask_activity__unmanaged_destroyedAndCollected() {
+        testExecute_activity__unmanaged_destroyedAndCollected(hierarchicalTaskFactory());
+    }
+
+    public void testExecute_hierarchicalTask_activity_managed_normal() {
+        testExecute_activity_managed_normal(hierarchicalTaskFactory());
+    }
+
+    public void testExecute_hierarchicalTask_activity_managed_destroyed() {
+        testExecute_activity_managed_destroyed(hierarchicalTaskFactory());
+    }
+
+    public void testExecute_hierarchicalTask_activity_managed_recreated() {
+        testExecute_activity_managed_recreated(hierarchicalTaskFactory());
+    }
+    //endregion
+
+
+    //region Unmanaged activity test templates
+    private void testExecute_activity_unmanaged_normal(AsyncTaskMockFactory pAsyncTaskFactory) {
         // GIVEN Activity is not managed.
-        final AsyncTaskActivity initialActivity = givenActivityUnmanaged();
+        final AsyncTaskActivityMock initialActivity = givenActivityUnmanaged();
         final double input = someInputData();
 
         // WHEN Activity is living during the whole AsyncTask lifecycle.
-        InnerAsyncTask asyncTask = initialActivity.executeInnerAsyncTask(input);
-        assertThat(asyncTask.doAllSteps(), equalTo(true));
-        assertThat(asyncTask.awaitFinished(), equalTo(true));
+        AsyncTaskMock asyncTask = pAsyncTaskFactory.create(initialActivity).doExecute(input);
+        assertThat(asyncTask.doFinish(), equalTo(true));
 
         // THEN AsyncTask ends successfully.
         assertThat(asyncTask.result(), equalTo(expectedResult(input)));
@@ -100,18 +240,17 @@ public class AsyncTaskTest extends TestCase<AsyncTaskActivity> {
         assertThat(initialActivity.result().value(), equalTo(expectedResult(input)));
     }
 
-    public void testExecute_innerAsyncTask_activity_unmanaged_notGarbageCollected() throws InterruptedException {
+    private void testExecute_activity_unmanaged_destroyedButNotCollected(AsyncTaskMockFactory pAsyncTaskFactory) {
         // GIVEN Activity is not managed.
-        AsyncTaskActivity initialActivity = givenActivityUnmanaged();
+        AsyncTaskActivityMock initialActivity = givenActivityUnmanaged();
         final double input = someInputData();
 
         // WHEN Activity is destroyed while AsyncTask is running but not garbage collected yet.
         // AND Activity is recreated.
-        InnerAsyncTask asyncTask = initialActivity.executeInnerAsyncTask(input, TWO_STEPS);
+        AsyncTaskMock asyncTask = pAsyncTaskFactory.create(initialActivity).doExecute(input);
         assertThat(asyncTask.doStep(), equalTo(true));
-        final AsyncTaskActivity recreatedActivity = recreateActivity(); // Look here.
-        assertThat(asyncTask.doStep(), equalTo(true));
-        assertThat(asyncTask.awaitFinished(), equalTo(true));
+        final AsyncTaskActivityMock recreatedActivity = recreateActivity(); // Look here.
+        assertThat(asyncTask.doFinish(), equalTo(true));
 
         // THEN AsyncTask ends successfully.
         assertThat(asyncTask.result(), equalTo(expectedResult(input)));
@@ -123,24 +262,23 @@ public class AsyncTaskTest extends TestCase<AsyncTaskActivity> {
         assertThat(recreatedActivity.result().value(), nullValue());
     }
 
-    public void testExecute_innerAsyncTask_activity_unmanaged_garbageCollected() throws InterruptedException {
+    private void testExecute_activity__unmanaged_destroyedAndCollected(AsyncTaskMockFactory pAsyncTaskFactory) {
         // GIVEN Activity is not managed.
-        AsyncTaskActivity initialActivity = givenActivityUnmanaged();
+        AsyncTaskActivityMock initialActivity = givenActivityUnmanaged();
         final ValueHolder<String> initialActivityResult = initialActivity.result();
         final double input = someInputData();
 
         // WHEN Activity is destroyed and garbage collected while AsyncTask is running.
         // AND Activity is recreated.
-        InnerAsyncTask asyncTask = initialActivity.executeInnerAsyncTask(input);
-        final AsyncTaskActivity recreatedActivity = recreateActivity(); // Look here.
+        AsyncTaskMock asyncTask = pAsyncTaskFactory.create(initialActivity).doExecute(input);
+        final AsyncTaskActivityMock recreatedActivity = recreateActivity(); // Look here.
         // Try to ensure the emitter gets garbage collected. WARNING: We don't have full control on the garbage collector so we
         // can guarantee this will work! This test may fail at any moment although it works for now. Such a failure occur may
         // occur in the BackgroundTask when checking if emitter is null (it should be null but it won't be in case of failure). A
         // failure could also mean there is a memory-leak somewhere...
         initialActivity = null;
         garbageCollect(); // And here.
-        assertThat(asyncTask.doAllSteps(), equalTo(true));
-        assertThat(asyncTask.awaitFinished(), equalTo(true));
+        assertThat(asyncTask.doFinish(), equalTo(true));
 
         // THEN AsyncTask ends successfully.
         assertThat(asyncTask.result(), equalTo(expectedResult(input)));
@@ -154,16 +292,15 @@ public class AsyncTaskTest extends TestCase<AsyncTaskActivity> {
     //endregion
 
 
-    //region Managed activity tests
-    public void testExecute_innerAsyncTask_activity_managed_normal() throws InterruptedException {
+    //region Managed activity test templates
+    private void testExecute_activity_managed_normal(AsyncTaskMockFactory pAsyncTaskFactory) {
         // GIVEN Activity is managed.
-        final AsyncTaskActivity initialActivity = givenActivityManaged();
+        final AsyncTaskActivityMock initialActivity = givenActivityManaged();
         final double input = someInputData();
 
         // WHEN Activity is living during the whole AsyncTask lifecycle.
-        InnerAsyncTask asyncTask = initialActivity.executeInnerAsyncTask(input);
-        assertThat(asyncTask.doAllSteps(), equalTo(true));
-        assertThat(asyncTask.awaitFinished(), equalTo(true));
+        AsyncTaskMock asyncTask = pAsyncTaskFactory.create(initialActivity).doExecute(input);
+        assertThat(asyncTask.doFinish(), equalTo(true));
 
         // THEN AsyncTask ends successfully.
         assertThat(asyncTask.result(), equalTo(expectedResult(input)));
@@ -172,36 +309,61 @@ public class AsyncTaskTest extends TestCase<AsyncTaskActivity> {
         assertThat(initialActivity.result().value(), equalTo(expectedResult(input)));
     }
 
-    public void testExecute_innerAsyncTask_activity_managed_destroyed() throws InterruptedException {
+    private void testExecute_activity_managed_destroyedAndCollected(AsyncTaskMockFactory pAsyncTaskFactory) {
         // GIVEN Activity is managed.
-        AsyncTaskActivity initialActivity = givenActivityManaged();
+        AsyncTaskActivityMock initialActivity = givenActivityManaged();
         final ValueHolder<String> initialActivityResult = initialActivity.result();
         final double input = someInputData();
 
-        // WHEN Activity is destroyed while AsyncTask is running.
-        InnerAsyncTask asyncTask = initialActivity.executeInnerAsyncTask(input);
-        initialActivity = terminateActivity(initialActivity); // Look here.
-        assertThat(asyncTask.doAllSteps(), equalTo(true));
-        assertThat(asyncTask.awaitFinished(), equalTo(true));
+        // WHEN Activity is destroyed and garbage collected while AsyncTask is running.
+        // AND Activity is recreated.
+        AsyncTaskMock asyncTask = pAsyncTaskFactory.create(initialActivity).doExecute(input);
+        final AsyncTaskActivityMock recreatedActivity = recreateActivity(); // Look here.
+        // Try to ensure the emitter gets garbage collected. WARNING: We don't have full control on the garbage collector so we
+        // can guarantee this will work! This test may fail at any moment although it works for now. Such a failure occur may
+        // occur in the BackgroundTask when checking if emitter is null (it should be null but it won't be in case of failure). A
+        // failure could also mean there is a memory-leak somewhere...
+        initialActivity = null;
+        garbageCollect(); // And here.
+        assertThat(asyncTask.doFinish(), equalTo(true));
 
         // THEN AsyncTask ends successfully.
         assertThat(asyncTask.result(), equalTo(expectedResult(input)));
         // AND Activity is not notified of the result.
         assertThat(initialActivity, nullValue());
         assertThat(initialActivityResult.value(), nullValue());
+        // AND recreated Activity is not managed so not notified of the result.
+        assertThat(recreatedActivity, notNullValue());
+        assertThat(recreatedActivity.result().value(), nullValue());
     }
 
-    public void testExecute_innerAsyncTask_activity_managed_recreated() throws InterruptedException {
+    private void testExecute_activity_managed_destroyed(AsyncTaskMockFactory pAsyncTaskFactory) {
         // GIVEN Activity is managed.
-        AsyncTaskActivity initialActivity = givenActivityManaged();
+        AsyncTaskActivityMock initialActivity = givenActivityManaged();
+        final double input = someInputData();
+
+        // WHEN Activity is destroyed while AsyncTask is running.
+        AsyncTaskMock asyncTask = pAsyncTaskFactory.create(initialActivity).doExecute(input);
+        terminateActivity(initialActivity); // Look here.
+        assertThat(asyncTask.doFinish(), equalTo(true));
+
+        // THEN AsyncTask ends successfully.
+        assertThat(asyncTask.result(), equalTo(expectedResult(input)));
+        // AND Activity is not notified of the result.
+        assertThat(initialActivity, notNullValue());
+        assertThat(initialActivity.result().value(), nullValue());
+    }
+
+    private void testExecute_activity_managed_recreated(AsyncTaskMockFactory pAsyncTaskFactory) {
+        // GIVEN Activity is managed.
+        AsyncTaskActivityMock initialActivity = givenActivityManaged();
         final double input = someInputData();
 
         // WHEN Activity is recreated while AsyncTask is running.
-        InnerAsyncTask asyncTask = initialActivity.executeInnerAsyncTask(input, TWO_STEPS);
+        AsyncTaskMock asyncTask = pAsyncTaskFactory.create(initialActivity).doExecute(input);
         assertThat(asyncTask.doStep(), equalTo(true));
-        final AsyncTaskActivity recreatedActivity = recreateActivity(); // Look here.
-        assertThat(asyncTask.doStep(), equalTo(true));
-        assertThat(asyncTask.awaitFinished(), equalTo(true));
+        final AsyncTaskActivityMock recreatedActivity = recreateActivity(); // Look here.
+        assertThat(asyncTask.doFinish(), equalTo(true));
 
         // THEN AsyncTask ends successfully.
         assertThat(asyncTask.result(), equalTo(expectedResult(input)));

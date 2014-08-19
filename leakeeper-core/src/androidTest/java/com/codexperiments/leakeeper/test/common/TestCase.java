@@ -19,7 +19,7 @@ import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.test.ActivityInstrumentationTestCase2;
 
-import com.codexperiments.leakeeper.test.task.AsyncTaskActivity;
+import com.codexperiments.leakeeper.test.task.helpers.AsyncTaskActivityMock;
 import com.codexperiments.leakeeper.test.task.helper.TaskActivity;
 
 public class TestCase<TActivity extends Activity> extends ActivityInstrumentationTestCase2<TActivity> {
@@ -95,10 +95,14 @@ public class TestCase<TActivity extends Activity> extends ActivityInstrumentatio
     protected void setUpOnUIThread() throws Exception {
     }
 
-    protected void rotateActivitySeveralTimes(int pCount) throws InterruptedException {
+    protected void rotateActivitySeveralTimes(int pCount) {
         for (int i = 0; i < pCount; ++i) {
             // Wait some time before turning.
-            sleep(500);
+            try {
+                sleep(500);
+            } catch (InterruptedException interruptedException) {
+                throw new RuntimeException(interruptedException);
+            }
 
             Resources lResources = getInstrumentation().getTargetContext().getResources();
             Configuration lConfiguration = lResources.getConfiguration();
@@ -113,7 +117,6 @@ public class TestCase<TActivity extends Activity> extends ActivityInstrumentatio
 
             TaskActivity lNewActivity = (TaskActivity) mApplication.getCurrentActivity();
             while (lNewActivity == lCurrentActivity) {
-                sleep(1);
                 lNewActivity = (TaskActivity) mApplication.getCurrentActivity();
             }
             assertThat(lNewActivity, not(equalTo(lCurrentActivity)));
@@ -122,13 +125,17 @@ public class TestCase<TActivity extends Activity> extends ActivityInstrumentatio
     }
 
     // TODO Refactor generics and give more flexibility on the lifecycle.
-    protected AsyncTaskActivity recreateActivity() throws InterruptedException {
+    protected AsyncTaskActivityMock recreateActivity() {
         // Wait some time before turning.
-        sleep(500);
+        try {
+            sleep(500);
+        } catch (InterruptedException interruptedException) {
+            throw new RuntimeException(interruptedException);
+        }
 
         // When activity is started, rotate it.
         Resources resources = getInstrumentation().getTargetContext().getResources();
-        AsyncTaskActivity initialActivity = (AsyncTaskActivity) mApplication.getCurrentActivity();
+        AsyncTaskActivityMock initialActivity = (AsyncTaskActivityMock) mApplication.getCurrentActivity();
         initialActivity.waitStarted();
         if (resources.getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
             initialActivity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
@@ -138,10 +145,9 @@ public class TestCase<TActivity extends Activity> extends ActivityInstrumentatio
 
         // When activity is terminated, get the new activity reference.
         initialActivity.waitTerminated();
-        AsyncTaskActivity newActivity = (AsyncTaskActivity) mApplication.getCurrentActivity();
+        AsyncTaskActivityMock newActivity = (AsyncTaskActivityMock) mApplication.getCurrentActivity();
         while (newActivity == initialActivity) {
-            sleep(1);
-            newActivity = (AsyncTaskActivity) mApplication.getCurrentActivity();
+            newActivity = (AsyncTaskActivityMock) mApplication.getCurrentActivity();
         }
         setActivity(newActivity);
 
@@ -150,23 +156,28 @@ public class TestCase<TActivity extends Activity> extends ActivityInstrumentatio
         return newActivity;
     }
 
-    protected TActivity terminateActivity(TActivity pActivity) throws InterruptedException {
+    protected TActivity terminateActivity(TActivity pActivity) {
         pActivity.finish();
         setActivity(null);
         mApplication.setCurrentActivity(null);
         if (pActivity instanceof TaskActivity) {
             ((TaskActivity) pActivity).waitTerminated();
         }
-        if (pActivity instanceof AsyncTaskActivity) {
-            assertThat(((AsyncTaskActivity) pActivity).waitTerminated(), equalTo(true));
+        if (pActivity instanceof AsyncTaskActivityMock) {
+            assertThat(((AsyncTaskActivityMock) pActivity).waitTerminated(), equalTo(true));
         }
         return null;
     }
 
-    protected void garbageCollect() throws InterruptedException {
+    protected void garbageCollect() {
         for (int i = 0; i < 3; ++i) {
-            Thread.sleep(100);
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException interruptedException) {
+                throw new RuntimeException(interruptedException);
+            }
             System.gc();
+            System.runFinalization();
             getInstrumentation().runOnMainSync(new Runnable() {
                 public void run() {
                     System.gc();

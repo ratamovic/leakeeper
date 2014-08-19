@@ -395,7 +395,7 @@ public class AndroidTaskManager<TCallback extends Task> implements TaskManager<T
         }
 
         /**
-         * Calls onStart() handler when a task is rebound to another object or when an emitter gets managed again.
+         * Call onStart() handler when a task is rebound to another object or when an emitter gets managed again.
          *
          * @param pDescriptor Descriptor to use to call onStart(). Necessary to use this parameter as descriptor can be changed
          *            concurrently through rebind.
@@ -478,7 +478,7 @@ public class AndroidTaskManager<TCallback extends Task> implements TaskManager<T
     }
 
     /**
-     * Contains all the information necessary to restore all the emitters (even parent emitters) of a task. Once prepareToRun() is
+     * Contain all the information necessary to restore all the emitters (even parent emitters) of a task. Once prepareToRun() is
      * called, the content of this class is not modified anymore (except the emitter and the reference counter dedicated to
      * referencing and dereferencing).
      */
