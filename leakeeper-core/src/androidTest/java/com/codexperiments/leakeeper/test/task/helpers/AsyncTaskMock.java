@@ -4,7 +4,6 @@ import android.annotation.TargetApi;
 import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Looper;
-import android.util.Log;
 import com.codexperiments.leakeeper.task.TaskManager;
 import com.codexperiments.leakeeper.task.TaskRef;
 import com.codexperiments.leakeeper.task.handler.Task;

@@ -1,14 +1,5 @@
 package com.codexperiments.leakeeper.test.common;
 
-import static java.lang.Thread.sleep;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.not;
-import static org.junit.Assert.assertThat;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
-
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.ActivityManager.RunningServiceInfo;
@@ -18,9 +9,15 @@ import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.test.ActivityInstrumentationTestCase2;
-
 import com.codexperiments.leakeeper.test.task.helpers.AsyncTaskActivityMock;
-import com.codexperiments.leakeeper.test.task.helper.TaskActivity;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import static java.lang.Thread.sleep;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertThat;
 
 public class TestCase<TActivity extends Activity> extends ActivityInstrumentationTestCase2<TActivity> {
     private Class<?> mActivityClass;
@@ -95,35 +92,6 @@ public class TestCase<TActivity extends Activity> extends ActivityInstrumentatio
     protected void setUpOnUIThread() throws Exception {
     }
 
-    protected void rotateActivitySeveralTimes(int pCount) {
-        for (int i = 0; i < pCount; ++i) {
-            // Wait some time before turning.
-            try {
-                sleep(500);
-            } catch (InterruptedException interruptedException) {
-                throw new RuntimeException(interruptedException);
-            }
-
-            Resources lResources = getInstrumentation().getTargetContext().getResources();
-            Configuration lConfiguration = lResources.getConfiguration();
-            TaskActivity lCurrentActivity = (TaskActivity) mApplication.getCurrentActivity();
-            lCurrentActivity.waitStarted();
-            if (lConfiguration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
-                lCurrentActivity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-            } else {
-                lCurrentActivity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
-            }
-            lCurrentActivity.waitTerminated();
-
-            TaskActivity lNewActivity = (TaskActivity) mApplication.getCurrentActivity();
-            while (lNewActivity == lCurrentActivity) {
-                lNewActivity = (TaskActivity) mApplication.getCurrentActivity();
-            }
-            assertThat(lNewActivity, not(equalTo(lCurrentActivity)));
-            lNewActivity.waitStarted();
-        }
-    }
-
     // TODO Refactor generics and give more flexibility on the lifecycle.
     protected AsyncTaskActivityMock recreateActivity() {
         // Wait some time before turning.
@@ -160,9 +128,6 @@ public class TestCase<TActivity extends Activity> extends ActivityInstrumentatio
         pActivity.finish();
         setActivity(null);
         mApplication.setCurrentActivity(null);
-        if (pActivity instanceof TaskActivity) {
-            ((TaskActivity) pActivity).waitTerminated();
-        }
         if (pActivity instanceof AsyncTaskActivityMock) {
             assertThat(((AsyncTaskActivityMock) pActivity).waitTerminated(), equalTo(true));
         }

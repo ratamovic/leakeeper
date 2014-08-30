@@ -1,4 +1,4 @@
-package com.codexperiments.leakeeper.test.task.helper;
+package com.codexperiments.leakeeper.test.task.helpers;
 
 public class ValueHolder<T> {
     private T mValue = null;

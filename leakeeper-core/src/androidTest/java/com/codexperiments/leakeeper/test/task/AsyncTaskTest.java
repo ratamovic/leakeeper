@@ -7,7 +7,7 @@ import com.codexperiments.leakeeper.task.android.AndroidTaskManager;
 import com.codexperiments.leakeeper.task.android.AndroidTaskManagerConfig;
 import com.codexperiments.leakeeper.task.handler.TaskResult;
 import com.codexperiments.leakeeper.test.common.TestCase;
-import com.codexperiments.leakeeper.test.task.helper.ValueHolder;
+import com.codexperiments.leakeeper.test.task.helpers.ValueHolder;
 import com.codexperiments.leakeeper.test.task.helpers.AsyncTaskActivityMock;
 import com.codexperiments.leakeeper.test.task.helpers.AsyncTaskMock;
 
@@ -22,15 +22,6 @@ public class AsyncTaskTest extends TestCase<AsyncTaskActivityMock> {
         super(AsyncTaskActivityMock.class);
     }
 
-    @Override
-    protected void setUp() throws Exception {
-        super.setUp();
-    }
-
-    @Override
-    protected void setUpOnUIThread() throws Exception {
-        super.setUpOnUIThread();
-    }
 
     //region Given
     private AsyncTaskActivityMock givenActivityManaged() {

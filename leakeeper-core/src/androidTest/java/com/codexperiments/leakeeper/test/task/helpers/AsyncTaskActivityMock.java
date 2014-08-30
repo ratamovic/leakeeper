@@ -6,13 +6,10 @@ import android.os.Bundle;
 import com.codexperiments.leakeeper.task.TaskManager;
 import com.codexperiments.leakeeper.task.handler.Task;
 import com.codexperiments.leakeeper.test.common.TestApplicationContext;
-import com.codexperiments.leakeeper.test.task.helper.ValueHolder;
 
 import java.lang.ref.WeakReference;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-
-import static org.junit.Assert.fail;
 
 public class AsyncTaskActivityMock extends Activity {
     private static final int MAX_WAIT_TIME = 10;
