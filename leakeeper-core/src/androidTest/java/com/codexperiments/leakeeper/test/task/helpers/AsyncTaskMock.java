@@ -10,14 +10,16 @@ import com.codexperiments.leakeeper.task.handler.Task;
 
 import java.util.concurrent.*;
 
-import static com.codexperiments.leakeeper.test.task.helpers.AsyncTaskActivityMock.expectedResult;
 import static org.junit.Assert.fail;
 
+/**
+ * Base AsyncTask class that transforms an input double value into an output string.
+ */
 public abstract class AsyncTaskMock extends AsyncTask<Double, Integer, String> implements Task {
     private static final int MAX_WAIT_TIME = 10;
 
     // Dependencies
-    protected final TaskManager mTaskManager;
+    protected static TaskManager mTaskManager;
     // Internal state
     private final CyclicBarrier mStepBarrier;
     private boolean mRequestStop = false, mStop = false;
@@ -167,6 +169,14 @@ public abstract class AsyncTaskMock extends AsyncTask<Double, Integer, String> i
     @Override
     public boolean unguard() {
         throw new IllegalAccessError();
+    }
+
+    public static Double someInputData() {
+        return Math.random();
+    }
+
+    public static String expectedResult(Double pValue) {
+        return Double.toString(pValue);
     }
     //endregion
 }

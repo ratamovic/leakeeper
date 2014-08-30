@@ -21,7 +21,7 @@ class ClassicAsyncTaskMock extends AsyncTaskMock {
     protected void onSaveResult(String pResult) {
         AsyncTaskActivityMock activity = mActivityRef.get();
         if (activity != null) {
-            activity.updateResult(pResult);
+            activity.result().set(pResult);
         }
     }
 }

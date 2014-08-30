@@ -67,7 +67,7 @@ public class AndroidTaskManager<TCallback extends Task> implements TaskManager<T
     // cleaned and accumulates references because it assumes that any object that managed object set doesn't grow infinitely but
     // is rather limited (e.g. typically all fragments, activity and manager in an Application).
     private Map<TaskEmitterId, TaskEmitterRef> mEmitters;
-    // Allows getting back an existing descriptor through its handler when dealing with nested tasks. An AutoCleanMap is necessary
+    // Allow getting back an existing descriptor through its handler when dealing with nested tasks. An AutoCleanMap is necessary
     // since there is no way to know when a handler are not necessary anymore.
     private Map<TaskHandler, TaskDescriptor> mDescriptors;
 
