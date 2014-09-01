@@ -8,7 +8,7 @@ public interface TaskResult extends TaskHandler {
      * 
      * TODO Explain what happen if reference is not restored.
      * 
-     * @param pTaskManager Use this TaskManager to perform any operation from the handler.
+     * @param pLeakManager Use this LeakManager to perform any operation from the handler.
      */
     void onFinish(/*TResult*/Object pResult);
 

@@ -6,7 +6,7 @@ import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.test.ActivityInstrumentationTestCase2;
-import com.codexperiments.leakeeper.task.TaskManager;
+import com.codexperiments.leakeeper.task.LeakManager;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -100,10 +100,10 @@ public class TestCase<TActivity extends TestActivity> extends ActivityInstrument
         return getActivity();
     }
 
-    public void register(Class<?> pManagerClass, TaskManager pTaskManager) {
+    public void register(Class<?> pManagerClass, LeakManager pLeakManager) {
         // There is no guaranteed thread-safety if activity is already started.
         if (mCurrentActivity != null) throw new IllegalStateException("Activity already started");
-        mManagers.put(pManagerClass, pTaskManager);
+        mManagers.put(pManagerClass, pLeakManager);
     }
 
     public static <TActivity extends TestActivity, TManager>

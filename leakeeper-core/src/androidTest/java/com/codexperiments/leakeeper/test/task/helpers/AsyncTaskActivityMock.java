@@ -2,7 +2,7 @@ package com.codexperiments.leakeeper.test.task.helpers;
 
 import android.content.Intent;
 import android.os.Bundle;
-import com.codexperiments.leakeeper.task.TaskManager;
+import com.codexperiments.leakeeper.task.LeakManager;
 import com.codexperiments.leakeeper.task.handler.Task;
 import com.codexperiments.leakeeper.test.common.TestActivity;
 import com.codexperiments.leakeeper.test.common.TestCase;
@@ -15,7 +15,7 @@ import java.lang.ref.WeakReference;
 public class AsyncTaskActivityMock extends TestActivity {
     private final ValueHolder<String> mResult = new ValueHolder<>();
 
-    private TaskManager<Task> mTaskManager;
+    private LeakManager<Task> mLeakManager;
     private boolean mManaged;
 
     public static Intent unmanaged() {
@@ -34,19 +34,19 @@ public class AsyncTaskActivityMock extends TestActivity {
     protected void onCreate(Bundle pBundle) {
         super.onCreate(pBundle);
 
-        mTaskManager = TestCase.inject(this, TaskManager.class);
+        mLeakManager = TestCase.inject(this, LeakManager.class);
         mManaged = getIntent().getBooleanExtra("MANAGED", true);
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        if (mManaged) mTaskManager.unmanage(this);
+        if (mManaged) mLeakManager.unmanage(this);
     }
 
     @Override
     protected void onStart() {
-        if (mManaged) mTaskManager.manage(this);
+        if (mManaged) mLeakManager.manage(this);
         super.onStart();
     }
     //endregion
@@ -71,7 +71,7 @@ public class AsyncTaskActivityMock extends TestActivity {
     }
 
     private AsyncTaskMock createClassicAsyncTask() {
-        return new ClassicAsyncTaskMock(mTaskManager, this);
+        return new ClassicAsyncTaskMock(mLeakManager, this);
     }
 
 
@@ -88,14 +88,14 @@ public class AsyncTaskActivityMock extends TestActivity {
     }
 
     private AsyncTaskMock createStaticAsyncTask() {
-        return new StaticAsyncTaskMock(mTaskManager, this);
+        return new StaticAsyncTaskMock(mLeakManager, this);
     }
 
     private static class StaticAsyncTaskMock extends AsyncTaskMock {
         private WeakReference<AsyncTaskActivityMock> mActivityRef;
 
-        StaticAsyncTaskMock(TaskManager pTaskManager, AsyncTaskActivityMock pActivity) {
-            super(pTaskManager);
+        StaticAsyncTaskMock(LeakManager pLeakManager, AsyncTaskActivityMock pActivity) {
+            super(pLeakManager);
             mActivityRef = new WeakReference<>(pActivity);
         }
 
@@ -127,12 +127,12 @@ public class AsyncTaskActivityMock extends TestActivity {
     }
 
     private AsyncTaskMock createInnerAsyncTask() {
-        return new InnerAsyncTaskMock(mTaskManager);
+        return new InnerAsyncTaskMock(mLeakManager);
     }
 
     private class InnerAsyncTaskMock extends AsyncTaskMock {
-        InnerAsyncTaskMock(TaskManager pTaskManager) {
-            super(pTaskManager);
+        InnerAsyncTaskMock(LeakManager pLeakManager) {
+            super(pLeakManager);
         }
 
         @Override
@@ -162,7 +162,7 @@ public class AsyncTaskActivityMock extends TestActivity {
     }
 
     private AsyncTaskMock createAnonymousAsyncTask() {
-        return new AsyncTaskMock(mTaskManager) {
+        return new AsyncTaskMock(mLeakManager) {
             @Override
             protected AsyncTaskActivityMock getActivity() {
                 return AsyncTaskActivityMock.this;
@@ -192,8 +192,8 @@ public class AsyncTaskActivityMock extends TestActivity {
 
     private AsyncTaskMock createLocalAsyncTask() {
         class LocalAsyncTaskMock extends AsyncTaskMock {
-            LocalAsyncTaskMock(TaskManager pTaskManager) {
-                super(pTaskManager);
+            LocalAsyncTaskMock(LeakManager pLeakManager) {
+                super(pLeakManager);
             }
 
             @Override
@@ -208,7 +208,7 @@ public class AsyncTaskActivityMock extends TestActivity {
                 }
             }
         }
-        return new LocalAsyncTaskMock(mTaskManager);
+        return new LocalAsyncTaskMock(mLeakManager);
     }
 
 
@@ -225,14 +225,14 @@ public class AsyncTaskActivityMock extends TestActivity {
     }
 
     private AsyncTaskMock createHierarchicalAsyncTask() {
-        return new HierarchicalAsyncTaskMock(mTaskManager);
+        return new HierarchicalAsyncTaskMock(mLeakManager);
     }
 
     private class HierarchicalAsyncTaskMock extends AsyncTaskMock {
         private AsyncTaskMock mChildAsyncTask;
 
-        HierarchicalAsyncTaskMock(TaskManager pTaskManager) {
-            super(pTaskManager);
+        HierarchicalAsyncTaskMock(LeakManager pLeakManager) {
+            super(pLeakManager);
         }
 
         @Override
@@ -252,7 +252,7 @@ public class AsyncTaskActivityMock extends TestActivity {
         protected void onSaveResult(String pResult) {
             // Run a child AsyncTask that processes the result.
             // Note that the result is not given back to the activity here but in the child task.
-            mChildAsyncTask = new AsyncTaskMock(mTaskManager) {
+            mChildAsyncTask = new AsyncTaskMock(sLeakManager) {
                 @Override
                 protected AsyncTaskActivityMock getActivity() {
                     return AsyncTaskActivityMock.this;

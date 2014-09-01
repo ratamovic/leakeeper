@@ -4,7 +4,8 @@ import android.annotation.TargetApi;
 import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Looper;
-import com.codexperiments.leakeeper.task.TaskManager;
+import com.codexperiments.leakeeper.task.LeakContainer;
+import com.codexperiments.leakeeper.task.LeakManager;
 import com.codexperiments.leakeeper.task.TaskRef;
 import com.codexperiments.leakeeper.task.handler.Task;
 
@@ -19,17 +20,16 @@ public abstract class AsyncTaskMock extends AsyncTask<Double, Integer, String> i
     private static final int MAX_WAIT_TIME = 10;
 
     // Dependencies
-    protected static TaskManager mTaskManager;
+    protected static LeakManager sLeakManager;
     // Internal state
+    private LeakContainer mContainer = null;
     private final CyclicBarrier mStepBarrier;
     private boolean mRequestStop = false, mStop = false;
     private final CountDownLatch mFinishedLatch = new CountDownLatch(1);
     private String mResult = null;
-    // Rubbishes
-    private Task mTempTaskRef = null;
 
-    AsyncTaskMock(TaskManager pTaskManager) {
-        mTaskManager = pTaskManager;
+    AsyncTaskMock(LeakManager pLeakManager) {
+        sLeakManager = pLeakManager;
         mStepBarrier = new CyclicBarrier(2, new Runnable() {
             @Override
             public void run() {
@@ -109,17 +109,17 @@ public abstract class AsyncTaskMock extends AsyncTask<Double, Integer, String> i
 
     @Override
     protected final void onPreExecute() {
-        mTempTaskRef = mTaskManager.execute(this);
+        mContainer = sLeakManager.wrap(this);
     }
 
     @Override
     protected final void onPostExecute(String result) {
-        mTempTaskRef.unguard();
+        mContainer.unguard();
 
         // Saves result.
         mResult = result;
         onSaveResult(result);
-        mTempTaskRef.guard();
+        mContainer.guard();
         mFinishedLatch.countDown();
     }
 

@@ -5,9 +5,9 @@ import java.util.concurrent.ExecutorService;
 import com.codexperiments.leakeeper.task.handler.Task;
 
 /**
- * Interface that defines how the TaskManager works.
+ * Interface that defines how the LeakManager works.
  */
-public interface TaskManagerConfig {
+public interface LeakManagerConfig {
     /**
      * Gives an object identifying an emitter. Basicallt, this identifier is used later as an indirection to access the emitter
      * (actually a Weak reference to it) while avoiding any possible memory leak. This Id could be a String, an Integer
@@ -27,17 +27,7 @@ public interface TaskManagerConfig {
     Object resolveEmitterId(Object pEmitter);
 
     /**
-     * Execution pipeline to use to run the task. Some tasks may use for example a "serial" executor, to ensure background tasks
-     * are executed in order (like classic AsyncTasks starting from Android Gingerbread). Other tasks may need to be run in
-     * parallel.
-     * 
-     * @param pTask Task that need to be executed on the executor.
-     * @return Executor to use for the specified task.
-     */
-    ExecutorService resolveExecutor(Task pTask);
-
-    /**
-     * Configuration option to indicate that TaskManager should wait for an object to be bound to the task before to execute task
+     * Configuration option to indicate that LeakManager should wait for an object to be bound to the task before to execute task
      * termination handlers. For example, given an Activity that starts a task but get destroyed during processing, two cases may
      * occur:
      * <ul>
@@ -62,7 +52,7 @@ public interface TaskManagerConfig {
 
     /**
      * Configuration option that allows task (not a task handler, i.e. TaskResult which can always be an inner class) declared as
-     * an inner class to be executed by the TaskManager. Using inner tasks is more risky if you are unexperienced since
+     * an inner class to be executed by the LeakManager. Using inner tasks is more risky if you are unexperienced since
      * dereferencing is applied during processing (a NullPointerException is raised if you access the outer object members). This
      * problem doesn't exist with tasks based on static or normal classes since no outer class reference is used.
      * 

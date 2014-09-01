@@ -13,7 +13,7 @@ import com.codexperiments.leakeeper.task.handler.Task;
  * processing to avoid possible memory leaks (e.g. if a task references an activity that gets destroyed during processing).</li>
  * <li>Referencing: References to emitters must be restored to execute task handlers (onFinish(), onFail(), onProgress()) or else,
  * the task would be unable to communicate with the outside world since it has be dereferenced. Referencing is possible only if
- * all the necessary emitters, managed by the TaskManager, are still reachable. If not, task handlers cannot be executed until all
+ * all the necessary emitters, managed by the LeakManager, are still reachable. If not, task handlers cannot be executed until all
  * are reachable (and if configuration requires to keep results on hold).</li>
  * </ul>
  * 
@@ -67,12 +67,12 @@ import com.codexperiments.leakeeper.task.handler.Task;
  * Right before and after these handlers are invoked, emitters are respectively referenced and dereferenced to allow accessing the
  * outer class. If outer class is not available (e.g. if Activity has been destroyed but not recreated yet).
  */
-public interface TaskManager<TCallback extends Task> {
+public interface LeakManager<TCallback extends Task> {
     void manage(Object pEmitter);
 
     void unmanage(Object pEmitter);
 
-    TCallback execute(TCallback pTask);
+    LeakContainer wrap(TCallback pTask);
 
-    boolean rebind(TaskRef pTaskRef, TCallback pTaskResult);
+    void unwrap(LeakContainer pContainer);
 }

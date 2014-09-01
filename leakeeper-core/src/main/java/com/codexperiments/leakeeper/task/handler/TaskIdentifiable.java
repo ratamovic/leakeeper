@@ -6,7 +6,7 @@ public interface TaskIdentifiable
 {
     /**
      * Identity of a task. Two tasks are considered to be the same if they their Id object are equals. Only the equals() method is
-     * called. The Id object returned will be compared to the Id of other tasks so that TaskManager can detect duplicated tasks
+     * called. The Id object returned will be compared to the Id of other tasks so that LeakManager can detect duplicated tasks
      * and avoid executing them.
      * 
      * Note that equals method on the task itself is used as a last resort. So implementing TaskIdentity is not compulsory. This

@@ -11,22 +11,20 @@ import android.content.pm.ApplicationInfo;
 import android.os.Build;
 import android.text.TextUtils;
 
-import com.codexperiments.leakeeper.task.TaskManagerConfig;
+import com.codexperiments.leakeeper.task.LeakManagerConfig;
 import com.codexperiments.leakeeper.task.handler.Task;
 
 /**
  * Example configuration that handles basic Android components: Activity and Fragments.
  */
-public class AndroidTaskManagerConfig implements TaskManagerConfig {
+public class AndroidLeakManagerConfig implements LeakManagerConfig {
     private Application mApplication;
-    private ExecutorService mSerialExecutor;
 
     private Class<?> mFragmentClass;
     private Class<?> mFragmentCompatClass;
 
-    public AndroidTaskManagerConfig(Application pApplication) {
+    public AndroidLeakManagerConfig(Application pApplication) {
         mApplication = pApplication;
-        mSerialExecutor = createExecutors();
 
         ClassLoader lClassLoader = getClass().getClassLoader();
         try {
@@ -39,21 +37,6 @@ public class AndroidTaskManagerConfig implements TaskManagerConfig {
         } catch (ClassNotFoundException eClassNotFoundException) {
             // Current application doesn't embed compatibility library.
         }
-    }
-
-    /**
-     * Create a single-threaded executor which executes tasks sequentially.
-     * 
-     * @return Instance of the serial executor.
-     */
-    protected ExecutorService createExecutors() {
-        return Executors.newSingleThreadExecutor(new ThreadFactory() {
-            public Thread newThread(Runnable pRunnable) {
-                Thread thread = new Thread(pRunnable);
-                thread.setDaemon(true);
-                return thread;
-            }
-        });
     }
 
     @Override
@@ -115,11 +98,6 @@ public class AndroidTaskManagerConfig implements TaskManagerConfig {
     @Override
     public boolean keepResultOnHold(Task pTask) {
         return false;
-    }
-
-    @Override
-    public ExecutorService resolveExecutor(Task pTask) {
-        return mSerialExecutor;
     }
 
     @Override

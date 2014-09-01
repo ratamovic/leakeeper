@@ -2,10 +2,10 @@ package com.codexperiments.leakeeper.test.task;
 
 import android.app.Activity;
 import android.app.Fragment;
-import com.codexperiments.leakeeper.task.TaskManager;
-import com.codexperiments.leakeeper.task.TaskManagerConfig;
-import com.codexperiments.leakeeper.task.android.AndroidTaskManager;
-import com.codexperiments.leakeeper.task.android.AndroidTaskManagerConfig;
+import com.codexperiments.leakeeper.task.LeakManager;
+import com.codexperiments.leakeeper.task.LeakManagerConfig;
+import com.codexperiments.leakeeper.task.android.AndroidLeakManager;
+import com.codexperiments.leakeeper.task.android.AndroidLeakManagerConfig;
 import com.codexperiments.leakeeper.task.handler.TaskResult;
 import com.codexperiments.leakeeper.test.common.TestCase;
 import com.codexperiments.leakeeper.test.task.helpers.ValueHolder;
@@ -31,9 +31,9 @@ public class AsyncTaskTest extends TestCase<AsyncTaskActivityMock> {
     private AsyncTaskActivityMock givenActivityManaged() {
         getInstrumentation().runOnMainSync(new Runnable() {
             public void run() {
-                TaskManagerConfig config = new AndroidTaskManagerConfig(getApplication());
-                AndroidTaskManager taskManager = new AndroidTaskManager(getApplication(), config, TaskResult.class);
-                register(TaskManager.class, taskManager);
+                LeakManagerConfig config = new AndroidLeakManagerConfig(getApplication());
+                AndroidLeakManager leakManager = new AndroidLeakManager(config);
+                register(LeakManager.class, leakManager);
             }
         });
         return getActivity();
@@ -42,7 +42,7 @@ public class AsyncTaskTest extends TestCase<AsyncTaskActivityMock> {
     private AsyncTaskActivityMock givenActivityUnmanaged() {
         getInstrumentation().runOnMainSync(new Runnable() {
             public void run() {
-                TaskManagerConfig taskManagerConfig = new AndroidTaskManagerConfig(getApplication()) {
+                LeakManagerConfig config = new AndroidLeakManagerConfig(getApplication()) {
                     @Override
                     public Object resolveEmitterId(Object pEmitter) {
                         return null;
@@ -63,8 +63,8 @@ public class AsyncTaskTest extends TestCase<AsyncTaskActivityMock> {
                         return null;
                     }
                 };
-                AndroidTaskManager taskManager = new AndroidTaskManager(getApplication(), taskManagerConfig, TaskResult.class);
-                register(TaskManager.class, taskManager);
+                AndroidLeakManager leakManager = new AndroidLeakManager(config);
+                register(LeakManager.class, leakManager);
             }
         });
         return getActivity(unmanaged());
