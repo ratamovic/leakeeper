@@ -1,38 +1,19 @@
 package com.codexperiments.leakeeper.task.android;
 
-import static com.codexperiments.leakeeper.task.android.AndroidLeakManagerException.emitterIdCouldNotBeDetermined;
-import static com.codexperiments.leakeeper.task.android.AndroidLeakManagerException.emitterNotManaged;
-import static com.codexperiments.leakeeper.task.android.AndroidLeakManagerException.innerTasksNotAllowed;
-import static com.codexperiments.leakeeper.task.android.AndroidLeakManagerException.internalError;
-import static com.codexperiments.leakeeper.task.android.AndroidLeakManagerException.invalidEmitterId;
-import static com.codexperiments.leakeeper.task.android.AndroidLeakManagerException.mustBeExecutedFromUIThread;
-import static com.codexperiments.leakeeper.task.android.AndroidLeakManagerException.taskExecutedFromUnexecutedTask;
-import static com.codexperiments.leakeeper.task.android.AndroidLeakManagerException.unmanagedEmittersNotAllowed;
+import android.os.Looper;
+import com.codexperiments.leakeeper.task.*;
+import com.codexperiments.leakeeper.task.util.AutoCleanMap;
+import com.codexperiments.leakeeper.task.util.EmptyLock;
 
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import android.os.Looper;
-
-import com.codexperiments.leakeeper.task.*;
-import com.codexperiments.leakeeper.task.LeakManager;
-import com.codexperiments.leakeeper.task.handler.Task;
-import com.codexperiments.leakeeper.task.handler.TaskHandler;
-import com.codexperiments.leakeeper.task.handler.TaskIdentifiable;
-import com.codexperiments.leakeeper.task.handler.TaskResult;
-import com.codexperiments.leakeeper.task.handler.TaskStart;
-import com.codexperiments.leakeeper.task.id.TaskId;
-import com.codexperiments.leakeeper.task.util.AutoCleanMap;
-import com.codexperiments.leakeeper.task.util.EmptyLock;
+import static com.codexperiments.leakeeper.task.android.AndroidLeakManagerException.*;
 
 /**
  * TODO Remove TaskId but create a TaskEquality helper class.
@@ -47,11 +28,12 @@ import com.codexperiments.leakeeper.task.util.EmptyLock;
  * 
  * TODO pending(TaskType)
  */
-public class AndroidLeakManager<TCallback extends Task> implements LeakManager<TCallback> {
+public class AndroidLeakManager<TCallback> implements LeakManager<TCallback> {
     private static final int DEFAULT_CAPACITY = 64;
     // To generate task references.
     private static int TASK_REF_COUNTER;
 
+    /*TODO*/ final private Class<TCallback> mCallbackClass;
     private TaskScheduler mDefaultScheduler;
     private LockingStrategy mLockingStrategy;
     private LeakManagerConfig mConfig;
@@ -63,15 +45,16 @@ public class AndroidLeakManager<TCallback extends Task> implements LeakManager<T
     private Map<TaskEmitterId, TaskEmitterRef> mEmitters;
     // Allow getting back an existing descriptor through its handler when dealing with nested tasks. An AutoCleanMap is necessary
     // since there is no way to know when a handler are not necessary anymore.
-    private Map<TaskHandler, TaskDescriptor> mDescriptors;
+    private Map<TCallback, TaskDescriptor> mDescriptors;
 
     static {
         TASK_REF_COUNTER = Integer.MIN_VALUE;
     }
 
-    public AndroidLeakManager(LeakManagerConfig pConfig) {
+    public AndroidLeakManager(Class<TCallback> pCallbackClass, LeakManagerConfig pConfig) {
         super();
 
+        mCallbackClass = pCallbackClass;
         mDefaultScheduler = new AndroidUITaskScheduler();
         mConfig = pConfig;
         mLockingStrategy = new UIThreadLockingStrategy();
@@ -193,6 +176,7 @@ public class AndroidLeakManager<TCallback extends Task> implements LeakManager<T
      * @param pContainer Finished task container.
      */
     @Override
+    @SuppressWarnings("SuspiciousMethodCalls")
     public void unwrap(LeakContainer pContainer) {
         mContainers.remove(pContainer);
     }
@@ -202,21 +186,19 @@ public class AndroidLeakManager<TCallback extends Task> implements LeakManager<T
      */
     /*private*/ class TaskContainer implements LeakContainer {
         // Handlers
-        private Task mTask;
+        private TCallback mTask;
 
         // Container info.
         private volatile TaskDescriptor mDescriptor;
         private final TaskRef mTaskRef;
-        private final TaskId mTaskId;
         private final TaskScheduler mScheduler;
 
-        public TaskContainer(Task pTask, TaskScheduler pScheduler) {
+        public TaskContainer(TCallback pTask, TaskScheduler pScheduler) {
             super();
             mTask = pTask;
 
             mDescriptor = null;
             mTaskRef = new TaskRef(TASK_REF_COUNTER++);
-            mTaskId = (pTask instanceof TaskIdentifiable) ? ((TaskIdentifiable) pTask).getId() : null;
             mScheduler = pScheduler;
         }
 
@@ -233,7 +215,7 @@ public class AndroidLeakManager<TCallback extends Task> implements LeakManager<T
         /**
          * Initialize the container before running it.
          */
-        protected TaskRef prepareToRun(TaskResult pTaskResult) {
+        protected TaskRef prepareToRun(TCallback pTaskResult) {
             // Initialize the descriptor safely in its corner and dereference required values.
             final TaskDescriptor lDescriptor = new TaskDescriptor(pTaskResult);
             if (!lDescriptor.needDereferencing(mTask)) {
@@ -241,12 +223,6 @@ public class AndroidLeakManager<TCallback extends Task> implements LeakManager<T
             }
             // Make the descriptor visible once fully initialized.
             mDescriptor = lDescriptor;
-            // Execute onStart() handler.
-            mScheduler.scheduleIfNecessary(new Runnable() {
-                public void run() {
-                    lDescriptor.onStart(true);
-                }
-            });
 
             // Save the descriptor so that any child task can use current descriptor as a parent.
             mDescriptors.put(pTaskResult, lDescriptor); // TODO Global lock that could lead to contention. Check for optim.
@@ -291,19 +267,15 @@ public class AndroidLeakManager<TCallback extends Task> implements LeakManager<T
 
             @SuppressWarnings("unchecked")
             TaskContainer lOtherContainer = (TaskContainer) pOther;
-            // Check equality on the user-defined task Id if possible.
-            if (mTaskId != null) return mTaskId.equals(lOtherContainer.mTaskId);
             // If the task has no Id, then we use task equality method. This is likely to turn into a simple reference check.
-            else if (mTask != null) return mTask.equals(lOtherContainer.mTask);
+            if (mTask != null) return mTask.equals(lOtherContainer.mTask);
             // A container can't be created with a null task. So the following case should never occur.
             else throw internalError();
         }
 
         @Override
         public int hashCode() {
-            if (mTaskId != null) {
-                return mTaskId.hashCode();
-            } else if (mTask != null) {
+            if (mTask != null) {
                 return mTask.hashCode();
             } else {
                 throw internalError();
@@ -317,7 +289,7 @@ public class AndroidLeakManager<TCallback extends Task> implements LeakManager<T
      * referencing and dereferencing).
      */
     private class TaskDescriptor {
-        private final TaskResult mTaskResult;
+        private final TCallback mTaskResult;
         private List<TaskEmitterDescriptor> mEmitterDescriptors; // Never modified once initialized in prepareDescriptor().
         private List<TaskDescriptor> mParentDescriptors; // Never modified once initialized in prepareDescriptor().
         // Counts the number of time a task has been referenced without being dereferenced. A task will be dereferenced only when
@@ -328,7 +300,7 @@ public class AndroidLeakManager<TCallback extends Task> implements LeakManager<T
         private final Lock mLock;
 
         // TODO Boolean option to indicate if we should look for emitter or if task is not "managed".
-        public TaskDescriptor(TaskResult pTaskResult) {
+        public TaskDescriptor(TCallback pTaskResult) {
             mTaskResult = pTaskResult;
             mEmitterDescriptors = null;
             mParentDescriptors = null;
@@ -338,7 +310,7 @@ public class AndroidLeakManager<TCallback extends Task> implements LeakManager<T
             prepareDescriptor();
         }
 
-        public boolean needDereferencing(Task pTask) {
+        public boolean needDereferencing(Object pTask) {
             return pTask == mTaskResult;
         }
 
@@ -464,13 +436,14 @@ public class AndroidLeakManager<TCallback extends Task> implements LeakManager<T
 
         /**
          * Check for parent tasks (i.e. a task containing directly or indirectly innertasks) and their descriptors that will be
-         * necessary to restore absolutely all emitters of a task.
+         * necessary to restore all emitters of a task.
          * 
          * @param pField Emitter field.
          * @param pEmitter Effective emitter reference. Must not be null.
          */
         private void lookForParentDescriptor(Field pField, Object pEmitter) {
-            if (TaskHandler.class.isAssignableFrom(pField.getType())) {
+            if (mCallbackClass.isAssignableFrom(pField.getType())) {
+                @SuppressWarnings("SuspiciousMethodCalls")
                 TaskDescriptor lDescriptor = mDescriptors.get(pEmitter);
                 if (lDescriptor == null) throw taskExecutedFromUnexecutedTask(pEmitter);
 
@@ -605,26 +578,12 @@ public class AndroidLeakManager<TCallback extends Task> implements LeakManager<T
                 }
             }
         }
-
-        public void onStart(boolean pIsRestored) {
-            if (mTaskResult instanceof TaskStart) {
-                if (referenceEmitter(true)) {
-                    try {
-                        ((TaskStart) mTaskResult).onStart(pIsRestored);
-                    } catch (RuntimeException eRuntimeException) {
-                        if (mConfig.crashOnHandlerFailure()) throw eRuntimeException;
-                    } finally {
-                        dereferenceEmitter();
-                    }
-                }
-            }
-        }
     }
 
     /**
      * Contains all the information necessary to restore a single emitter on a task handler (its field and its generated Id).
      */
-    private static final class TaskEmitterDescriptor {
+    private final class TaskEmitterDescriptor {
         private final Field mEmitterField;
         private final TaskEmitterRef mEmitterRef;
 
@@ -647,7 +606,7 @@ public class AndroidLeakManager<TCallback extends Task> implements LeakManager<T
          * @param pTaskResult Emitter to restore.
          * @return True if referencing succeed or false else.
          */
-        public boolean reference(TaskResult pTaskResult) {
+        public boolean reference(TCallback pTaskResult) {
             try {
                 Object lEmitter = mEmitterRef.get();
                 if (lEmitter != null) {
@@ -666,7 +625,7 @@ public class AndroidLeakManager<TCallback extends Task> implements LeakManager<T
          * 
          * @param pTaskResult Emitter to dereference.
          */
-        public void dereference(TaskResult pTaskResult) {
+        public void dereference(TCallback pTaskResult) {
             try {
                 mEmitterField.set(pTaskResult, null);
             } catch (IllegalAccessException | RuntimeException exception) {
@@ -809,7 +768,7 @@ public class AndroidLeakManager<TCallback extends Task> implements LeakManager<T
         public void createManager(AndroidLeakManager pAndroidLeakManager) {
             pAndroidLeakManager.mContainers = Collections.newSetFromMap(new ConcurrentHashMap<TaskContainer, Boolean>(DEFAULT_CAPACITY));
             pAndroidLeakManager.mEmitters = new ConcurrentHashMap<TaskEmitterId, TaskEmitterRef>(DEFAULT_CAPACITY);
-            pAndroidLeakManager.mDescriptors = new AutoCleanMap<TaskHandler, TaskDescriptor>(DEFAULT_CAPACITY);
+            pAndroidLeakManager.mDescriptors = new AutoCleanMap<>(DEFAULT_CAPACITY);
         }
 
         @Override
@@ -831,7 +790,7 @@ public class AndroidLeakManager<TCallback extends Task> implements LeakManager<T
         public void createManager(AndroidLeakManager pAndroidLeakManager) {
             pAndroidLeakManager.mContainers = Collections.newSetFromMap(new ConcurrentHashMap<TaskContainer, Boolean>(DEFAULT_CAPACITY));
             pAndroidLeakManager.mEmitters = new ConcurrentHashMap<TaskEmitterId, TaskEmitterRef>(DEFAULT_CAPACITY);
-            pAndroidLeakManager.mDescriptors = new AutoCleanMap<TaskHandler, TaskDescriptor>(DEFAULT_CAPACITY);
+            pAndroidLeakManager.mDescriptors = new AutoCleanMap<TCallback, TaskDescriptor>(DEFAULT_CAPACITY);
         }
 
         @Override

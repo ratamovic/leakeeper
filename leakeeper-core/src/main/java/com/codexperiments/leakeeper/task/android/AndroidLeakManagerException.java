@@ -1,8 +1,5 @@
 package com.codexperiments.leakeeper.task.android;
 
-import com.codexperiments.leakeeper.task.handler.Task;
-import com.codexperiments.leakeeper.task.handler.TaskResult;
-
 public class AndroidLeakManagerException extends RuntimeException {
     private static final long serialVersionUID = 1075178581665280357L;
 
@@ -14,16 +11,16 @@ public class AndroidLeakManagerException extends RuntimeException {
         super(String.format(pMessage, pArguments), pThrowable);
     }
 
-    public static AndroidLeakManagerException emitterIdCouldNotBeDetermined(TaskResult pTask) {
-        return new AndroidLeakManagerException("Invalid task %1$s : Emitter Id couldn't be bound.", pTask);
+    public static AndroidLeakManagerException emitterIdCouldNotBeDetermined(Object pTask) {
+        return new AndroidLeakManagerException("Emitter Id couldn't be determined for task %1$s.", pTask);
     }
 
     public static AndroidLeakManagerException emitterNotManaged(Object pEmitterId, Object pEmitter) {
         return new AndroidLeakManagerException("A call to manage for emitter %2$s with Id %1$s is missing.", pEmitterId, pEmitter);
     }
 
-    public static AndroidLeakManagerException innerTasksNotAllowed(Task pTask) {
-        return new AndroidLeakManagerException("Inner tasks like %1$s not allowed by configuration.", pTask.getClass());
+    public static AndroidLeakManagerException innerTasksNotAllowed(Object pTask) {
+        return new AndroidLeakManagerException("Inner tasks of type %1$s not allowed by configuration.", pTask.getClass());
     }
 
     public static AndroidLeakManagerException internalError() {

@@ -1,7 +1,5 @@
 package com.codexperiments.leakeeper.task;
 
-import com.codexperiments.leakeeper.task.handler.Task;
-
 /**
  * Terminology:
  * 
@@ -67,7 +65,7 @@ import com.codexperiments.leakeeper.task.handler.Task;
  * Right before and after these handlers are invoked, emitters are respectively referenced and dereferenced to allow accessing the
  * outer class. If outer class is not available (e.g. if Activity has been destroyed but not recreated yet).
  */
-public interface LeakManager<TCallback extends Task> {
+public interface LeakManager<TCallback> {
     void manage(Object pEmitter);
 
     void unmanage(Object pEmitter);

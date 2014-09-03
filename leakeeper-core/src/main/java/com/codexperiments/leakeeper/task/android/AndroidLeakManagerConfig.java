@@ -12,7 +12,6 @@ import android.os.Build;
 import android.text.TextUtils;
 
 import com.codexperiments.leakeeper.task.LeakManagerConfig;
-import com.codexperiments.leakeeper.task.handler.Task;
 
 /**
  * Example configuration that handles basic Android components: Activity and Fragments.
@@ -93,11 +92,6 @@ public class AndroidLeakManagerConfig implements LeakManagerConfig {
         } else {
             return pFragment.getClass();
         }
-    }
-
-    @Override
-    public boolean keepResultOnHold(Task pTask) {
-        return false;
     }
 
     @Override

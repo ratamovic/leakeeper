@@ -3,7 +3,6 @@ package com.codexperiments.leakeeper.test.task.helpers;
 import android.content.Intent;
 import android.os.Bundle;
 import com.codexperiments.leakeeper.task.LeakManager;
-import com.codexperiments.leakeeper.task.handler.Task;
 import com.codexperiments.leakeeper.test.common.TestActivity;
 import com.codexperiments.leakeeper.test.common.TestCase;
 
@@ -15,7 +14,7 @@ import java.lang.ref.WeakReference;
 public class AsyncTaskActivityMock extends TestActivity {
     private final ValueHolder<String> mResult = new ValueHolder<>();
 
-    private LeakManager<Task> mLeakManager;
+    private LeakManager<AsyncTaskActivityMock> mLeakManager;
     private boolean mManaged;
 
     public static Intent unmanaged() {

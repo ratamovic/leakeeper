@@ -1,9 +1,5 @@
 package com.codexperiments.leakeeper.task;
 
-import java.util.concurrent.ExecutorService;
-
-import com.codexperiments.leakeeper.task.handler.Task;
-
 /**
  * Interface that defines how the LeakManager works.
  */
@@ -25,23 +21,6 @@ public interface LeakManagerConfig {
      * @return Id of the emitter. Cannot be the emitter itself, or that could potentienally result in a memory leak.
      */
     Object resolveEmitterId(Object pEmitter);
-
-    /**
-     * Configuration option to indicate that LeakManager should wait for an object to be bound to the task before to execute task
-     * termination handlers. For example, given an Activity that starts a task but get destroyed during processing, two cases may
-     * occur:
-     * <ul>
-     * <li>keepResultOnHold is false: task termination handlers are executed as soon as the task is over, whether an activity is
-     * bound to the task or not. If an activity is bound, onFinish and onFail are executed. If no activity is bound, then only
-     * onResult is executed. is bound to the task</li>
-     * <li>keepResultOnHold is true: task termination handlers (i.e. onFinish, onFail, ...) won't be called until an activity is
-     * bound to the task (whether it is the emitting activity or an activity bound later through rebind()).</li>
-     * </ul>
-     * 
-     * @param pTask Task the result of which need to be kept or not until an object is bound.
-     * @return True to save task result until an object is bound or false to execute termination handlers immediately.
-     */
-    boolean keepResultOnHold(Task pTask);
 
     /**
      * Configuration option to forbid use of unmanaged objects.

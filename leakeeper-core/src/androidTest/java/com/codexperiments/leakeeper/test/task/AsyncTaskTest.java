@@ -6,7 +6,6 @@ import com.codexperiments.leakeeper.task.LeakManager;
 import com.codexperiments.leakeeper.task.LeakManagerConfig;
 import com.codexperiments.leakeeper.task.android.AndroidLeakManager;
 import com.codexperiments.leakeeper.task.android.AndroidLeakManagerConfig;
-import com.codexperiments.leakeeper.task.handler.TaskResult;
 import com.codexperiments.leakeeper.test.common.TestCase;
 import com.codexperiments.leakeeper.test.task.helpers.ValueHolder;
 import com.codexperiments.leakeeper.test.task.helpers.AsyncTaskActivityMock;
@@ -32,7 +31,7 @@ public class AsyncTaskTest extends TestCase<AsyncTaskActivityMock> {
         getInstrumentation().runOnMainSync(new Runnable() {
             public void run() {
                 LeakManagerConfig config = new AndroidLeakManagerConfig(getApplication());
-                AndroidLeakManager leakManager = new AndroidLeakManager(config);
+                AndroidLeakManager leakManager = new AndroidLeakManager<>(AsyncTaskMock.class, config);
                 register(LeakManager.class, leakManager);
             }
         });
@@ -63,7 +62,7 @@ public class AsyncTaskTest extends TestCase<AsyncTaskActivityMock> {
                         return null;
                     }
                 };
-                AndroidLeakManager leakManager = new AndroidLeakManager(config);
+                AndroidLeakManager leakManager = new AndroidLeakManager<>(AsyncTaskMock.class, config);
                 register(LeakManager.class, leakManager);
             }
         });

@@ -6,8 +6,6 @@ import android.os.Handler;
 import android.os.Looper;
 import com.codexperiments.leakeeper.task.LeakContainer;
 import com.codexperiments.leakeeper.task.LeakManager;
-import com.codexperiments.leakeeper.task.TaskRef;
-import com.codexperiments.leakeeper.task.handler.Task;
 
 import java.util.concurrent.*;
 
@@ -16,7 +14,7 @@ import static org.junit.Assert.fail;
 /**
  * Base AsyncTask class that transforms an input double value into an output string.
  */
-public abstract class AsyncTaskMock extends AsyncTask<Double, Integer, String> implements Task {
+public abstract class AsyncTaskMock extends AsyncTask<Double, Integer, String> {
     private static final int MAX_WAIT_TIME = 10;
 
     // Dependencies
@@ -144,31 +142,6 @@ public abstract class AsyncTaskMock extends AsyncTask<Double, Integer, String> i
     //region Utilities
     public String result() {
         return mResult;
-    }
-
-    @Override
-    public TaskRef toRef() {
-        return null;
-    }
-
-    @Override
-    public void onFinish(Object pResult) {
-        throw new IllegalAccessError();
-    }
-
-    @Override
-    public void onFail(Throwable pException) {
-        throw new IllegalAccessError();
-    }
-
-    @Override
-    public void guard() {
-        throw new IllegalAccessError();
-    }
-
-    @Override
-    public boolean unguard() {
-        throw new IllegalAccessError();
     }
 
     public static Double someInputData() {
