@@ -31,10 +31,9 @@ import static com.codexperiments.leakeeper.task.android.AndroidLeakManagerExcept
 public class AndroidLeakManager<TCallback> implements LeakManager<TCallback> {
     private static final int DEFAULT_CAPACITY = 64;
     // To generate task references.
-    private static int TASK_REF_COUNTER;
+    private static int TASK_REF_COUNTER; // TODO Atomic Integer
 
     /*TODO*/ final private Class<TCallback> mCallbackClass;
-    private TaskScheduler mDefaultScheduler;
     private LockingStrategy mLockingStrategy;
     private LeakManagerConfig mConfig;
     // All the current running tasks.
@@ -55,7 +54,6 @@ public class AndroidLeakManager<TCallback> implements LeakManager<TCallback> {
         super();
 
         mCallbackClass = pCallbackClass;
-        mDefaultScheduler = new AndroidUITaskScheduler();
         mConfig = pConfig;
         mLockingStrategy = new UIThreadLockingStrategy();
         mLockingStrategy.createManager(this);
@@ -113,7 +111,7 @@ public class AndroidLeakManager<TCallback> implements LeakManager<TCallback> {
         mLockingStrategy.checkCallIsAllowed();
 
         // Create a container to run the task.
-        TaskContainer lContainer = new TaskContainer(pCallback, mDefaultScheduler);
+        TaskContainer lContainer = new TaskContainer(pCallback);
         // Save the task before running it.
         // Note that it is safe to add the task to the container since it is an empty stub that shouldn't create any side-effect.
         if (mContainers.add(lContainer)) {
@@ -130,9 +128,7 @@ public class AndroidLeakManager<TCallback> implements LeakManager<TCallback> {
             }
         }
         // If an identical task is already executing, do nothing.
-        else {
-            return null;
-        }
+        else return null;
     }
 
     /**
@@ -189,17 +185,15 @@ public class AndroidLeakManager<TCallback> implements LeakManager<TCallback> {
         private TCallback mTask;
 
         // Container info.
-        private volatile TaskDescriptor mDescriptor;
         private final TaskRef mTaskRef;
-        private final TaskScheduler mScheduler;
+        private volatile TaskDescriptor mDescriptor;
 
-        public TaskContainer(TCallback pTask, TaskScheduler pScheduler) {
+        public TaskContainer(TCallback pTask) {
             super();
             mTask = pTask;
 
-            mDescriptor = null;
             mTaskRef = new TaskRef(TASK_REF_COUNTER++);
-            mScheduler = pScheduler;
+            mDescriptor = null;
         }
 
         @Override
@@ -216,46 +210,27 @@ public class AndroidLeakManager<TCallback> implements LeakManager<TCallback> {
          * Initialize the container before running it.
          */
         protected TaskRef prepareToRun(TCallback pTaskResult) {
-            // Initialize the descriptor safely in its corner and dereference required values.
             final TaskDescriptor lDescriptor = new TaskDescriptor(pTaskResult);
-            if (!lDescriptor.needDereferencing(mTask)) {
-                prepareTask();
-            }
             // Make the descriptor visible once fully initialized.
             mDescriptor = lDescriptor;
-
             // Save the descriptor so that any child task can use current descriptor as a parent.
             mDescriptors.put(pTaskResult, lDescriptor); // TODO Global lock that could lead to contention. Check for optim.
             return mTaskRef;
         }
 
         /**
-         * Dereference the task itself if it is disjoint from its handlers. This is definitive. No code inside the task is allowed
-         * to access this$x references.
+         * Replace the previous task handler with a new one. Previous handler is lost. See manage() for concurrency concerns.
+         *
+         * @param pTaskRef Reference of the task to rebind to. If different, nothing is performed.
+         * @param pTaskResult Task handler that must replace previous one.
          */
-        private void prepareTask() {
-            try {
-                Class<?> lTaskClass = mTask.getClass();
-                while (lTaskClass != Object.class) {
-                    // If current class is an inner class...
-                    if ((lTaskClass.getEnclosingClass() != null) && !Modifier.isStatic(lTaskClass.getModifiers())) {
-                        if (!mConfig.allowInnerTasks()) throw innerTasksNotAllowed(mTask);
-
-                        // Remove any references to the outer class.
-                        for (Field lField : lTaskClass.getDeclaredFields()) {
-                            if (lField.getName().startsWith("this$")) {
-                                lField.setAccessible(true);
-                                lField.set(mTask, null);
-                                // There should be only one outer reference per "class" in the Task class hierarchy. So we can
-                                // stop as soon as the field is found as there won't be another.
-                                break;
-                            }
-                        }
-                    }
-                    lTaskClass = lTaskClass.getSuperclass();
-                }
-            } catch (IllegalAccessException | IllegalArgumentException exception) {
-                throw internalError(exception);
+        public void rebind(TaskRef pTaskRef, TCallback pTaskResult) {
+            if (mTaskRef.equals(pTaskRef)) {
+                final TaskDescriptor lDescriptor = new TaskDescriptor(pTaskResult);
+                mDescriptor = lDescriptor;
+                // TODO restore(lDescriptor); Event to know when rebound.
+                // Save the descriptor so that any child task can use current descriptor as a parent.
+                mDescriptors.put(pTaskResult, lDescriptor); // TODO Global lock that could lead to contention. Check for optim.
             }
         }
 
@@ -268,18 +243,14 @@ public class AndroidLeakManager<TCallback> implements LeakManager<TCallback> {
             @SuppressWarnings("unchecked")
             TaskContainer lOtherContainer = (TaskContainer) pOther;
             // If the task has no Id, then we use task equality method. This is likely to turn into a simple reference check.
-            if (mTask != null) return mTask.equals(lOtherContainer.mTask);
-            // A container can't be created with a null task. So the following case should never occur.
-            else throw internalError();
+            // Note that a container can't be created with a null task so no null check is needed.
+            return mTask.equals(lOtherContainer.mTask);
         }
 
         @Override
         public int hashCode() {
-            if (mTask != null) {
-                return mTask.hashCode();
-            } else {
-                throw internalError();
-            }
+            // Note that a container can't be created with a null task so no null check is needed.
+            return mTask.hashCode();
         }
     }
 
