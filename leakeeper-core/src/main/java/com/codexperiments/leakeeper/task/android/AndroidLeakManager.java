@@ -1,17 +1,14 @@
 package com.codexperiments.leakeeper.task.android;
 
-import android.os.Looper;
 import com.codexperiments.leakeeper.task.*;
 import com.codexperiments.leakeeper.task.util.AutoCleanMap;
-import com.codexperiments.leakeeper.task.util.EmptyLock;
 
-import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.*;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 import static com.codexperiments.leakeeper.task.android.AndroidLeakManagerException.*;
 
@@ -29,38 +26,39 @@ import static com.codexperiments.leakeeper.task.android.AndroidLeakManagerExcept
  * TODO pending(TaskType)
  */
 public class AndroidLeakManager<TCallback> implements LeakManager<TCallback> {
-    private static final int DEFAULT_CAPACITY = 64;
-
     /*TODO*/ final private Class<TCallback> mCallbackClass;
-    /*private*/ LockingStrategy mLockingStrategy;
+    private final LockFactory mLockFactory;
+    private final ThreadEnforcer mThreadEnforcer;
     private LeakManagerConfig mConfig;
     // All the current running tasks.
-    private Set<LeakContainerImpl> mContainers;
+    private Set<LeakContainer> mContainers;
     // Keep tracks of all emitters. Note that TaskEmitterRef uses a weak reference to avoid memory leaks. This Map is never
     // cleaned and accumulates references because it assumes that any object that managed object set doesn't grow infinitely but
     // is rather limited (e.g. typically all fragments, activity and manager in an Application).
     private Map<TaskEmitterId, TaskEmitterRef> mEmitters;
     // Allow getting back an existing descriptor through its handler when dealing with nested tasks. An AutoCleanMap is necessary
     // since there is no way to know when a handler are not necessary anymore.
-    /*private*/ Map<TCallback, TaskDescriptor> mDescriptors;
+    /*private*/ Map<TCallback, TaskDescriptor> mDescriptors; // TODO Handle this with a counter in descriptor?
 
 
-    public AndroidLeakManager(Class<TCallback> pCallbackClass, LeakManagerConfig pConfig) {
+    public AndroidLeakManager(LockFactory pLockFactory, ThreadEnforcer pThreadEnforcer,
+                              Class<TCallback> pCallbackClass, LeakManagerConfig pConfig, Set<LeakContainer> pContainers,
+                              Map<TaskEmitterId, TaskEmitterRef> pEmitters, Map<TCallback, TaskDescriptor> pDescriptors) {
         super();
 
+        mLockFactory = pLockFactory;
+        mThreadEnforcer = pThreadEnforcer;
         mCallbackClass = pCallbackClass;
         mConfig = pConfig;
-        mLockingStrategy = new UIThreadLockingStrategy();
-        mLockingStrategy.createManager(this);
-        mContainers = Collections.newSetFromMap(new ConcurrentHashMap<LeakContainerImpl, Boolean>(DEFAULT_CAPACITY));
-        mEmitters = new ConcurrentHashMap<>(DEFAULT_CAPACITY);
-        mDescriptors = new AutoCleanMap<>(DEFAULT_CAPACITY);
+        mContainers = pContainers;
+        mEmitters = pEmitters;
+        mDescriptors = pDescriptors;
     }
 
     @Override
     public void manage(Object pEmitter) {
         if (pEmitter == null) throw new NullPointerException("Emitter is null");
-        mLockingStrategy.checkCallIsAllowed();
+        mThreadEnforcer.enforce();
 
         // Save the new emitter in the reference list. Replace the existing one, if any, according to its id (the old one is
         // considered obsolete). Emitter Id is computed by the configuration and can be null if emitter is not managed.
@@ -81,7 +79,7 @@ public class AndroidLeakManager<TCallback> implements LeakManager<TCallback> {
     @Override
     public void unmanage(Object pEmitter) {
         if (pEmitter == null) throw new NullPointerException("Emitter is null");
-        mLockingStrategy.checkCallIsAllowed();
+        mThreadEnforcer.enforce();
 
         // Remove an existing task emitter. If the emitter reference (in Java terms) is different from the object to remove, then
         // don't do anything. This could occur if a new object is managed before an older one with the same Id is unmanaged.
@@ -103,7 +101,7 @@ public class AndroidLeakManager<TCallback> implements LeakManager<TCallback> {
     @Override
     public LeakContainer wrap(TCallback pCallback) {
         if (pCallback == null) throw new NullPointerException("Callback is null");
-        mLockingStrategy.checkCallIsAllowed();
+        mThreadEnforcer.enforce();
 
         // Create a container to run the task.
         LeakContainerImpl lContainer = new LeakContainerImpl(pCallback);
@@ -202,7 +200,7 @@ public class AndroidLeakManager<TCallback> implements LeakManager<TCallback> {
          * @param pTaskResult Task handler that must replace previous one.
          */
         public void rebind(TCallback pTaskResult) {
-            final TaskDescriptor lDescriptor = new TaskDescriptor(pTaskResult);
+            final TaskDescriptor lDescriptor = new TaskDescriptor(pTaskResult, mLockFactory.create());
             mDescriptor = lDescriptor;
             // TODO restore(lDescriptor); Event to know when rebound.
             // Save the descriptor so that any child task can use current descriptor as a parent.
@@ -244,12 +242,12 @@ public class AndroidLeakManager<TCallback> implements LeakManager<TCallback> {
         private final Lock mLock;
 
         // TODO Boolean option to indicate if we should look for emitter or if task is not "managed".
-        public TaskDescriptor(TCallback pTaskResult) {
+        public TaskDescriptor(TCallback pTaskResult, Lock pLock) {
             mTaskResult = pTaskResult;
             mEmitterDescriptors = null;
             mParentDescriptors = null;
             mReferenceCounter = 0;
-            mLock = mLockingStrategy.createLock();
+            mLock = pLock;
 
             prepareDescriptor();
         }
@@ -580,170 +578,6 @@ public class AndroidLeakManager<TCallback> implements LeakManager<TCallback> {
         @Override
         public String toString() {
             return "TaskEmitterDescriptor [mEmitterField=" + mEmitterField + ", mEmitterRef=" + mEmitterRef + "]";
-        }
-    }
-
-    /**
-     * Represents a reference to an emitter. Its goal is to add a level of indirection to the emitter so that several tasks can
-     * easily share updates made to an emitter.
-     */
-    private static final class TaskEmitterRef {
-        private final TaskEmitterId mEmitterId;
-        private volatile WeakReference<Object> mEmitterRef;
-
-        public TaskEmitterRef(Object pEmitterValue) {
-            mEmitterId = null;
-            set(pEmitterValue);
-        }
-
-        public TaskEmitterRef(TaskEmitterId pEmitterId, Object pEmitterValue) {
-            mEmitterId = pEmitterId;
-            set(pEmitterValue);
-        }
-
-        public boolean hasSameId(TaskEmitterId pTaskEmitterId) {
-            return (mEmitterId != null) && mEmitterId.equals(pTaskEmitterId);
-        }
-
-        public Object get() {
-            return (mEmitterRef != null) ? mEmitterRef.get() : null;
-        }
-
-        public void set(Object pEmitterValue) {
-            mEmitterRef = new WeakReference<>(pEmitterValue);
-        }
-
-        public void clear() {
-            mEmitterRef = null;
-        }
-
-        @Override
-        public boolean equals(Object pOther) {
-            if (this == pOther) return true;
-            if (pOther == null) return false;
-            if (getClass() != pOther.getClass()) return false;
-
-            TaskEmitterRef lOther = (TaskEmitterRef) pOther;
-            if (mEmitterId == null) return lOther.mEmitterId == null;
-            else return mEmitterId.equals(lOther.mEmitterId);
-        }
-
-        @Override
-        public int hashCode() {
-            final int prime = 31;
-            int result = 1;
-            result = prime * result + ((mEmitterId == null) ? 0 : mEmitterId.hashCode());
-            return result;
-        }
-
-        @Override
-        public String toString() {
-            return "TaskEmitterRef [mEmitterId=" + mEmitterId + ", mEmitterRef=" + mEmitterRef + "]";
-        }
-    }
-
-    /**
-     * Contains the information to store the Id of an emitter. Emitter class is necessary since if internal Ids may be quite
-     * common and thus similar between emitters of different types (e.g. fragments which have integer Ids starting from 0).
-     */
-    private static final class TaskEmitterId {
-        private final Class<?> mType;
-        private final Object mId;
-
-        public TaskEmitterId(Class<?> pType, Object pId) {
-            super();
-            mType = pType;
-            mId = pId;
-        }
-
-        @Override
-        public boolean equals(Object pOther) {
-            if (this == pOther) return true;
-            if (pOther == null) return false;
-            if (getClass() != pOther.getClass()) return false;
-
-            TaskEmitterId lOther = (TaskEmitterId) pOther;
-            if (mId == null) {
-                if (lOther.mId != null) return false;
-            } else if (!mId.equals(lOther.mId)) return false;
-
-            if (mType == null) return lOther.mType == null;
-            else return mType.equals(lOther.mType);
-        }
-
-        @Override
-        public int hashCode() {
-            final int prime = 31;
-            int result = 1;
-            result = prime * result + ((mId == null) ? 0 : mId.hashCode());
-            result = prime * result + ((mType == null) ? 0 : mType.hashCode());
-            return result;
-        }
-
-        @Override
-        public String toString() {
-            return "TaskEmitterId [mType=" + mType + ", mId=" + mId + "]";
-        }
-    }
-
-    /**
-     * Allows changing the way things are synchronized in the code (i.e. everything on the UI-Thread or multi-threaded).
-     */
-    public interface LockingStrategy {
-        void createManager(AndroidLeakManager pAndroidLeakManager);
-
-        Lock createLock();
-
-        void checkCallIsAllowed();
-    }
-
-    /**
-     * Everything is done on the UI-Thread. No lock required.
-     */
-    public class UIThreadLockingStrategy implements LockingStrategy {
-        private Looper mUILooper;
-
-        public UIThreadLockingStrategy() {
-            super();
-            mUILooper = Looper.getMainLooper();
-        }
-
-        @Override
-        public void createManager(AndroidLeakManager pAndroidLeakManager) {
-            pAndroidLeakManager.mContainers = Collections.newSetFromMap(new ConcurrentHashMap<LeakContainerImpl, Boolean>(DEFAULT_CAPACITY));
-            pAndroidLeakManager.mEmitters = new ConcurrentHashMap<TaskEmitterId, TaskEmitterRef>(DEFAULT_CAPACITY);
-            pAndroidLeakManager.mDescriptors = new AutoCleanMap<>(DEFAULT_CAPACITY);
-        }
-
-        @Override
-        public Lock createLock() {
-            return new EmptyLock();
-        }
-
-        @Override
-        public void checkCallIsAllowed() {
-            if (Looper.myLooper() != mUILooper) throw mustBeExecutedFromUIThread();
-        }
-    }
-
-    /**
-     * Tasks and handlers can be executed on any threads concurrently.
-     */
-    public class MultiThreadLockingStrategy implements LockingStrategy {
-        @Override
-        public void createManager(AndroidLeakManager pAndroidLeakManager) {
-            pAndroidLeakManager.mContainers = Collections.newSetFromMap(new ConcurrentHashMap<LeakContainerImpl, Boolean>(DEFAULT_CAPACITY));
-            pAndroidLeakManager.mEmitters = new ConcurrentHashMap<TaskEmitterId, TaskEmitterRef>(DEFAULT_CAPACITY);
-            pAndroidLeakManager.mDescriptors = new AutoCleanMap<TCallback, TaskDescriptor>(DEFAULT_CAPACITY);
-        }
-
-        @Override
-        public Lock createLock() {
-            return new ReentrantLock();
-        }
-
-        @Override
-        public void checkCallIsAllowed() {
         }
     }
 }

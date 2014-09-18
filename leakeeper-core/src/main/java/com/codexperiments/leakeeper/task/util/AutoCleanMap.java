@@ -31,6 +31,7 @@ public class AutoCleanMap<TKey, TValue> extends AbstractMap<TKey, TValue> {
         new Thread(new Runnable() {
             @SuppressWarnings("unchecked")
             public void run() {
+                // TODO Set background
                 Process.setThreadPriority(Process.THREAD_PRIORITY_LOWEST);
                 while (true) {
                     try {
