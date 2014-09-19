@@ -1,4 +1,4 @@
-package com.codexperiments.leakeeper.test.task.helpers;
+package com.codexperiments.leakeeper.test.asynctask;
 
 import com.codexperiments.leakeeper.LeakManager;
 

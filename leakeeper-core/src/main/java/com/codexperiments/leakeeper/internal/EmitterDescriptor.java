@@ -1,4 +1,4 @@
-package com.codexperiments.leakeeper;
+package com.codexperiments.leakeeper.internal;
 
 import java.lang.reflect.Field;
 

@@ -1,10 +1,11 @@
-package com.codexperiments.leakeeper.test.task.helpers;
+package com.codexperiments.leakeeper.test.asynctask;
 
 import android.content.Intent;
 import android.os.Bundle;
 import com.codexperiments.leakeeper.LeakManager;
 import com.codexperiments.leakeeper.test.common.TestActivity;
 import com.codexperiments.leakeeper.test.common.TestCase;
+import com.codexperiments.leakeeper.test.common.ValueHolder;
 
 import java.lang.ref.WeakReference;
 

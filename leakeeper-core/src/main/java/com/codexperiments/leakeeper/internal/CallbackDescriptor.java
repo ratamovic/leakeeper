@@ -1,4 +1,6 @@
-package com.codexperiments.leakeeper;
+package com.codexperiments.leakeeper.internal;
+
+import com.codexperiments.leakeeper.LeakException;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;

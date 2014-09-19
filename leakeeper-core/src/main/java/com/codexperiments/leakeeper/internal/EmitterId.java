@@ -1,4 +1,4 @@
-package com.codexperiments.leakeeper;
+package com.codexperiments.leakeeper.internal;
 
 /**
  * Contains the information to store the Id of an emitter. Emitter class is necessary since if internal Ids may be quite common

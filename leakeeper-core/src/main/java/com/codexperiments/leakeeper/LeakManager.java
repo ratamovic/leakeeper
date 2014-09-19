@@ -7,11 +7,15 @@ import com.codexperiments.leakeeper.config.factory.LockFactory;
 import com.codexperiments.leakeeper.config.factory.MultiThreadLockFactory;
 import com.codexperiments.leakeeper.config.factory.SingleThreadLockFactory;
 import com.codexperiments.leakeeper.config.resolver.EmitterResolver;
-import com.codexperiments.leakeeper.util.AutoCleanMap;
+import com.codexperiments.leakeeper.internal.CallbackDescriptor;
+import com.codexperiments.leakeeper.internal.EmitterId;
+import com.codexperiments.leakeeper.internal.EmitterRef;
+import com.codexperiments.leakeeper.internal.AutoCleanMap;
 
 import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.Lock;
 
 import static com.codexperiments.leakeeper.LeakException.*;
 
@@ -93,11 +97,13 @@ import static com.codexperiments.leakeeper.LeakException.*;
  * TODO TaskRef add a Tag
  * 
  * TODO pending(TaskType)
+ *
+ * TODO Rebind
  */
 public class LeakManager<TCallback> implements CallbackDescriptor.Resolver {
     private static final int DEFAULT_CAPACITY = 64;
 
-    public static <TCallback> LeakManager<TCallback> createSingleThreaded(Class<TCallback> pCallbackClass, EmitterResolver pEmitterResolver) {
+    public static <TCallback> LeakManager<TCallback> singleThreaded(Class<TCallback> pCallbackClass, EmitterResolver pEmitterResolver) {
         Set<LeakContainer> containers = new HashSet<>(DEFAULT_CAPACITY);
         Map<EmitterId, EmitterRef> emitters = new HashMap<>(DEFAULT_CAPACITY);
         Map<TCallback, CallbackDescriptor> descriptors = new AutoCleanMap<>(DEFAULT_CAPACITY);
@@ -109,7 +115,7 @@ public class LeakManager<TCallback> implements CallbackDescriptor.Resolver {
         return new LeakManager<>(pCallbackClass, lockFactory, threadEnforcer, pEmitterResolver, containers, emitters, descriptors);
     }
 
-    public static <TCallback> LeakManager<TCallback> createMultiThreaded(Class<TCallback> pCallbackClass, EmitterResolver pEmitterResolver) {
+    public static <TCallback> LeakManager<TCallback> multiThreaded(Class<TCallback> pCallbackClass, EmitterResolver pEmitterResolver) {
         Set<LeakContainer> containers = Collections.newSetFromMap(new ConcurrentHashMap<LeakContainer, Boolean>(DEFAULT_CAPACITY));
         Map<EmitterId, EmitterRef> emitters = new ConcurrentHashMap<>(DEFAULT_CAPACITY);
         Map<TCallback, CallbackDescriptor> descriptors = new AutoCleanMap<>(DEFAULT_CAPACITY);
@@ -192,19 +198,21 @@ public class LeakManager<TCallback> implements CallbackDescriptor.Resolver {
         }
     }
 
-    public LeakContainer wrap(TCallback pCallback) {
+    public LeakContainer wrap(TCallback pCallback, Lock pLock) {
         if (pCallback == null) throw new NullPointerException("Callback is null");
         mThreadEnforcer.enforce();
 
         // Create a container to run the task.
-        LeakContainerImpl lContainer = new LeakContainerImpl(pCallback);
+        LeakContainer lContainer = new LeakContainer(pCallback, this);
         // Save the task before running it.
         // Note that it is safe to add the task to the container since it is an empty stub that shouldn't create any side-effect.
         if (mContainers.add(lContainer)) {
             // Prepare the task (i.e. initialize and cache needed values) after adding it because prepareToRun() is a bit
             // expensive and should be performed only if necessary.
             try {
-                lContainer.rebind(pCallback);
+                CallbackDescriptor callbackDescriptor = lContainer.rebind(pCallback, mLockFactory.create());
+                // Save the descriptor so that any child task can use current descriptor as a parent.
+                mDescriptors.put(pCallback, callbackDescriptor); // TODO Global lock that could lead to contention. Check for optim.
                 return lContainer;
             }
             // If preparation operation fails, try to leave the manager in a consistent state without memory leaks.
@@ -272,60 +280,5 @@ public class LeakManager<TCallback> implements CallbackDescriptor.Resolver {
     @SuppressWarnings("SuspiciousMethodCalls")
     public void unwrap(LeakContainer pContainer) {
         mContainers.remove(pContainer);
-    }
-
-    /**
-     * Wrapper class that contains all the information about the task to wrap.
-     */
-    private class LeakContainerImpl implements LeakContainer {
-        // Handlers
-        private TCallback mTask; // Cannot be null
-        // Container info.
-        private volatile CallbackDescriptor mDescriptor = null;
-
-        public LeakContainerImpl(TCallback pTask) {
-            super();
-            mTask = pTask;
-        }
-
-        @Override
-        public void guard() {
-            mDescriptor.dereferenceEmitter();
-        }
-
-        @Override
-        public boolean unguard() {
-            return mDescriptor.referenceEmitter(false);
-        }
-
-        /**
-         * Initialize or replace the previous task handler with a new one. Previous handler is lost.
-         *
-         * @param pTaskResult Task handler that must replace previous one.
-         */
-        public void rebind(TCallback pTaskResult) {
-            final CallbackDescriptor lDescriptor = new CallbackDescriptor(LeakManager.this, pTaskResult, mLockFactory.create());
-            mDescriptor = lDescriptor;
-            // TODO restore(lDescriptor); Event to know when rebound.
-            // Save the descriptor so that any child task can use current descriptor as a parent.
-            mDescriptors.put(pTaskResult, lDescriptor); // TODO Global lock that could lead to contention. Check for optim.
-        }
-
-        @Override
-        public boolean equals(Object pOther) {
-            if (this == pOther) return true;
-            if (pOther == null) return false;
-            if (getClass() != pOther.getClass()) return false;
-
-            @SuppressWarnings("unchecked")
-            LeakContainerImpl lOtherContainer = (LeakContainerImpl) pOther;
-            // If the task has no Id, then we use task equality method. This is likely to turn into a simple reference check.
-            return mTask.equals(lOtherContainer.mTask);
-        }
-
-        @Override
-        public int hashCode() {
-            return mTask.hashCode();
-        }
     }
 }

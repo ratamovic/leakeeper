@@ -1,4 +1,4 @@
-package com.codexperiments.leakeeper.util;
+package com.codexperiments.leakeeper.internal;
 
 import android.os.Process;
 

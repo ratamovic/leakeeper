@@ -1,4 +1,4 @@
-package com.codexperiments.leakeeper.test.task.helpers;
+package com.codexperiments.leakeeper.test.asynctask;
 
 import android.annotation.TargetApi;
 import android.os.AsyncTask;
@@ -107,7 +107,7 @@ public abstract class AsyncTaskMock extends AsyncTask<Double, Integer, String> {
 
     @Override
     protected final void onPreExecute() {
-        mContainer = sLeakManager.wrap(this);
+        mContainer = sLeakManager.wrap(this, null);
     }
 
     @Override

@@ -1,16 +1,14 @@
-package com.codexperiments.leakeeper.test.task;
+package com.codexperiments.leakeeper.test.asynctask;
 
 import com.codexperiments.leakeeper.config.resolver.EmitterResolver;
 import com.codexperiments.leakeeper.LeakManager;
 import com.codexperiments.leakeeper.config.resolver.AndroidEmitterResolver;
 import com.codexperiments.leakeeper.test.common.TestCase;
-import com.codexperiments.leakeeper.test.task.helpers.AsyncTaskActivityMock;
-import com.codexperiments.leakeeper.test.task.helpers.AsyncTaskMock;
-import com.codexperiments.leakeeper.test.task.helpers.ValueHolder;
+import com.codexperiments.leakeeper.test.common.ValueHolder;
 
-import static com.codexperiments.leakeeper.test.task.helpers.AsyncTaskActivityMock.*;
-import static com.codexperiments.leakeeper.test.task.helpers.AsyncTaskMock.expectedResult;
-import static com.codexperiments.leakeeper.test.task.helpers.AsyncTaskMock.someInputData;
+import static com.codexperiments.leakeeper.test.asynctask.AsyncTaskActivityMock.*;
+import static com.codexperiments.leakeeper.test.asynctask.AsyncTaskMock.expectedResult;
+import static com.codexperiments.leakeeper.test.asynctask.AsyncTaskMock.someInputData;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertThat;
 
@@ -28,7 +26,7 @@ public class AsyncTaskTest extends TestCase<AsyncTaskActivityMock> {
         getInstrumentation().runOnMainSync(new Runnable() {
             public void run() {
                 EmitterResolver emitterResolver = new AndroidEmitterResolver();
-                LeakManager<AsyncTaskMock> leakManager = LeakManager.createSingleThreaded(AsyncTaskMock.class, emitterResolver);
+                LeakManager<AsyncTaskMock> leakManager = LeakManager.singleThreaded(AsyncTaskMock.class, emitterResolver);
                 register(LeakManager.class, leakManager);
             }
         });
@@ -44,7 +42,7 @@ public class AsyncTaskTest extends TestCase<AsyncTaskActivityMock> {
                         return null; // No object is managed.
                     }
                 };
-                LeakManager<AsyncTaskMock> leakManager = LeakManager.createSingleThreaded(AsyncTaskMock.class, emitterResolver);
+                LeakManager<AsyncTaskMock> leakManager = LeakManager.singleThreaded(AsyncTaskMock.class, emitterResolver);
                 register(LeakManager.class, leakManager);
             }
         });

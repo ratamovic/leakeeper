@@ -8,7 +8,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Base Activity that can be manipulated by a TestCase.
  */
-public class TestActivity extends Activity {
+public abstract class TestActivity extends Activity {
     private final CountDownLatch mStartedLatch = new CountDownLatch(1);
     private final CountDownLatch mDestroyedLatch = new CountDownLatch(1);
 
