@@ -1,14 +1,14 @@
-package com.codexperiments.leakeeper.task.impl;
+package com.codexperiments.leakeeper;
 
 /**
  * Contains the information to store the Id of an emitter. Emitter class is necessary since if internal Ids may be quite common
  * and thus similar between emitters of different types (e.g. fragments which have integer Ids starting from 0).
  */
-public final class TaskEmitterId {
+public final class EmitterId {
     private final Class<?> mType;
     private final Object mId;
 
-    public TaskEmitterId(Class<?> pType, Object pId) {
+    public EmitterId(Class<?> pType, Object pId) {
         super();
         mType = pType;
         mId = pId;
@@ -20,7 +20,7 @@ public final class TaskEmitterId {
         if (pOther == null) return false;
         if (getClass() != pOther.getClass()) return false;
 
-        TaskEmitterId lOther = (TaskEmitterId) pOther;
+        EmitterId lOther = (EmitterId) pOther;
         if (mId == null) {
             if (lOther.mId != null) return false;
         } else if (!mId.equals(lOther.mId)) return false;
@@ -40,6 +40,6 @@ public final class TaskEmitterId {
 
     @Override
     public String toString() {
-        return "TaskEmitterId [mType=" + mType + ", mId=" + mId + "]";
+        return "EmitterId [mType=" + mType + ", mId=" + mId + "]";
     }
 }

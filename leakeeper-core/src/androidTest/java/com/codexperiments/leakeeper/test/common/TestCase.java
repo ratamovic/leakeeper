@@ -6,7 +6,7 @@ import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.test.ActivityInstrumentationTestCase2;
-import com.codexperiments.leakeeper.task.LeakManager;
+import com.codexperiments.leakeeper.LeakManager;
 
 import java.util.HashMap;
 import java.util.Map;

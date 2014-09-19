@@ -2,7 +2,7 @@ package com.codexperiments.leakeeper.test.task.helpers;
 
 import android.content.Intent;
 import android.os.Bundle;
-import com.codexperiments.leakeeper.task.LeakManager;
+import com.codexperiments.leakeeper.LeakManager;
 import com.codexperiments.leakeeper.test.common.TestActivity;
 import com.codexperiments.leakeeper.test.common.TestCase;
 

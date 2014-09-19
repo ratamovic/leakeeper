@@ -1,4 +1,4 @@
-package com.codexperiments.leakeeper.task;
+package com.codexperiments.leakeeper;
 
 public interface LeakContainer {
     void guard();

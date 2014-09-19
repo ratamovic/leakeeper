@@ -1,4 +1,6 @@
-package com.codexperiments.leakeeper.task.util;
+package com.codexperiments.leakeeper.util;
+
+import android.os.Process;
 
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
@@ -6,8 +8,6 @@ import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-
-import android.os.Process;
 
 /**
  * TODO Comments

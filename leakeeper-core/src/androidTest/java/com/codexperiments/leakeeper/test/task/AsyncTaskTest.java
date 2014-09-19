@@ -1,15 +1,12 @@
 package com.codexperiments.leakeeper.test.task;
 
-import android.app.Activity;
-import android.app.Fragment;
-import com.codexperiments.leakeeper.task.LeakManager;
-import com.codexperiments.leakeeper.task.LeakManagerConfig;
-import com.codexperiments.leakeeper.task.impl.LeakManagerImpl;
-import com.codexperiments.leakeeper.task.impl.AndroidLeakManagerConfig;
+import com.codexperiments.leakeeper.config.resolver.EmitterResolver;
+import com.codexperiments.leakeeper.LeakManager;
+import com.codexperiments.leakeeper.config.resolver.AndroidEmitterResolver;
 import com.codexperiments.leakeeper.test.common.TestCase;
-import com.codexperiments.leakeeper.test.task.helpers.ValueHolder;
 import com.codexperiments.leakeeper.test.task.helpers.AsyncTaskActivityMock;
 import com.codexperiments.leakeeper.test.task.helpers.AsyncTaskMock;
+import com.codexperiments.leakeeper.test.task.helpers.ValueHolder;
 
 import static com.codexperiments.leakeeper.test.task.helpers.AsyncTaskActivityMock.*;
 import static com.codexperiments.leakeeper.test.task.helpers.AsyncTaskMock.expectedResult;
@@ -30,8 +27,8 @@ public class AsyncTaskTest extends TestCase<AsyncTaskActivityMock> {
     private AsyncTaskActivityMock givenActivityManaged() {
         getInstrumentation().runOnMainSync(new Runnable() {
             public void run() {
-                LeakManagerConfig config = new AndroidLeakManagerConfig(getApplication());
-                LeakManagerImpl leakManager = new LeakManagerImpl<>(AsyncTaskMock.class, config);
+                EmitterResolver emitterResolver = new AndroidEmitterResolver();
+                LeakManager<AsyncTaskMock> leakManager = LeakManager.createSingleThreaded(AsyncTaskMock.class, emitterResolver);
                 register(LeakManager.class, leakManager);
             }
         });
@@ -41,28 +38,13 @@ public class AsyncTaskTest extends TestCase<AsyncTaskActivityMock> {
     private AsyncTaskActivityMock givenActivityUnmanaged() {
         getInstrumentation().runOnMainSync(new Runnable() {
             public void run() {
-                LeakManagerConfig config = new AndroidLeakManagerConfig(getApplication()) {
+                EmitterResolver emitterResolver = new EmitterResolver() {
                     @Override
                     public Object resolveEmitterId(Object pEmitter) {
-                        return null;
-                    }
-
-                    @Override
-                    protected Object resolveActivityId(Activity pActivity) {
-                        return null;
-                    }
-
-                    @Override
-                    protected Object resolveFragmentId(Fragment pFragment) {
-                        return null;
-                    }
-
-                    @Override
-                    protected Object resolveFragmentId(android.support.v4.app.Fragment pFragment) {
-                        return null;
+                        return null; // No object is managed.
                     }
                 };
-                LeakManagerImpl leakManager = new LeakManagerImpl<>(AsyncTaskMock.class, config);
+                LeakManager<AsyncTaskMock> leakManager = LeakManager.createSingleThreaded(AsyncTaskMock.class, emitterResolver);
                 register(LeakManager.class, leakManager);
             }
         });

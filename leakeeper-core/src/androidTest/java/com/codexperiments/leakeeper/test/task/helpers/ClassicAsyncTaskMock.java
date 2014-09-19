@@ -1,6 +1,6 @@
 package com.codexperiments.leakeeper.test.task.helpers;
 
-import com.codexperiments.leakeeper.task.LeakManager;
+import com.codexperiments.leakeeper.LeakManager;
 
 import java.lang.ref.WeakReference;
 

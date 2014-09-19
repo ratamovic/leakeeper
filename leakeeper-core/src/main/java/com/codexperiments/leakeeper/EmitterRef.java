@@ -1,4 +1,4 @@
-package com.codexperiments.leakeeper.task.impl;
+package com.codexperiments.leakeeper;
 
 import java.lang.ref.WeakReference;
 
@@ -6,22 +6,22 @@ import java.lang.ref.WeakReference;
  * Represents a reference to an emitter. Its goal is to add a level of indirection to the emitter so that several tasks can easily
  * share updates made to an emitter.
  */
-public final class TaskEmitterRef {
-    private final TaskEmitterId mEmitterId;
+public final class EmitterRef {
+    private final EmitterId mEmitterId;
     private volatile WeakReference<Object> mEmitterRef;
 
-    public TaskEmitterRef(Object pEmitterValue) {
+    public EmitterRef(Object pEmitterValue) {
         mEmitterId = null;
         set(pEmitterValue);
     }
 
-    public TaskEmitterRef(TaskEmitterId pEmitterId, Object pEmitterValue) {
+    public EmitterRef(EmitterId pEmitterId, Object pEmitterValue) {
         mEmitterId = pEmitterId;
         set(pEmitterValue);
     }
 
-    public boolean hasSameId(TaskEmitterId pTaskEmitterId) {
-        return (mEmitterId != null) && mEmitterId.equals(pTaskEmitterId);
+    public boolean hasSameId(EmitterId pEmitterId) {
+        return (mEmitterId != null) && mEmitterId.equals(pEmitterId);
     }
 
     public Object get() {
@@ -42,7 +42,7 @@ public final class TaskEmitterRef {
         if (pOther == null) return false;
         if (getClass() != pOther.getClass()) return false;
 
-        TaskEmitterRef lOther = (TaskEmitterRef) pOther;
+        EmitterRef lOther = (EmitterRef) pOther;
         if (mEmitterId == null) return lOther.mEmitterId == null;
         else return mEmitterId.equals(lOther.mEmitterId);
     }
@@ -57,6 +57,6 @@ public final class TaskEmitterRef {
 
     @Override
     public String toString() {
-        return "TaskEmitterRef [mEmitterId=" + mEmitterId + ", mEmitterRef=" + mEmitterRef + "]";
+        return "EmitterRef [mEmitterId=" + mEmitterId + ", mEmitterRef=" + mEmitterRef + "]";
     }
 }

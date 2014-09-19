@@ -1,13 +1,19 @@
-package com.codexperiments.leakeeper.task.impl;
+package com.codexperiments.leakeeper;
 
-import com.codexperiments.leakeeper.task.*;
+import com.codexperiments.leakeeper.config.enforcer.AndroidUIThreadEnforcer;
+import com.codexperiments.leakeeper.config.enforcer.NoThreadEnforcer;
+import com.codexperiments.leakeeper.config.enforcer.ThreadEnforcer;
+import com.codexperiments.leakeeper.config.factory.LockFactory;
+import com.codexperiments.leakeeper.config.factory.MultiThreadLockFactory;
+import com.codexperiments.leakeeper.config.factory.SingleThreadLockFactory;
+import com.codexperiments.leakeeper.config.resolver.EmitterResolver;
+import com.codexperiments.leakeeper.util.AutoCleanMap;
 
 import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
-import static com.codexperiments.leakeeper.task.impl.LeakManagerException.*;
+import static com.codexperiments.leakeeper.LeakException.*;
 
 /**
  * Terminology:
@@ -74,6 +80,8 @@ import static com.codexperiments.leakeeper.task.impl.LeakManagerException.*;
  * Right before and after these handlers are invoked, emitters are respectively referenced and dereferenced to allow accessing the
  * outer class. If outer class is not available (e.g. if Activity has been destroyed but not recreated yet).
  *
+ * TODO Rename manage => manageEmitter and wrap => wrapCallback?
+ *
  * TODO Remove TaskId but create a TaskEquality helper class.
  * 
  * TODO Handle cancellation.
@@ -86,58 +94,83 @@ import static com.codexperiments.leakeeper.task.impl.LeakManagerException.*;
  * 
  * TODO pending(TaskType)
  */
-public class LeakManagerImpl<TCallback> implements LeakManager<TCallback> {
-    /*TODO*/ final private Class<TCallback> mCallbackClass;
+public class LeakManager<TCallback> implements CallbackDescriptor.Resolver {
+    private static final int DEFAULT_CAPACITY = 64;
+
+    public static <TCallback> LeakManager<TCallback> createSingleThreaded(Class<TCallback> pCallbackClass, EmitterResolver pEmitterResolver) {
+        Set<LeakContainer> containers = new HashSet<>(DEFAULT_CAPACITY);
+        Map<EmitterId, EmitterRef> emitters = new HashMap<>(DEFAULT_CAPACITY);
+        Map<TCallback, CallbackDescriptor> descriptors = new AutoCleanMap<>(DEFAULT_CAPACITY);
+        LockFactory lockFactory = new SingleThreadLockFactory();
+
+        boolean android = true;
+        ThreadEnforcer threadEnforcer = android ? new AndroidUIThreadEnforcer() : new NoThreadEnforcer();
+
+        return new LeakManager<>(pCallbackClass, lockFactory, threadEnforcer, pEmitterResolver, containers, emitters, descriptors);
+    }
+
+    public static <TCallback> LeakManager<TCallback> createMultiThreaded(Class<TCallback> pCallbackClass, EmitterResolver pEmitterResolver) {
+        Set<LeakContainer> containers = Collections.newSetFromMap(new ConcurrentHashMap<LeakContainer, Boolean>(DEFAULT_CAPACITY));
+        Map<EmitterId, EmitterRef> emitters = new ConcurrentHashMap<>(DEFAULT_CAPACITY);
+        Map<TCallback, CallbackDescriptor> descriptors = new AutoCleanMap<>(DEFAULT_CAPACITY);
+        LockFactory lockFactory = new MultiThreadLockFactory();
+        ThreadEnforcer threadEnforcer = new NoThreadEnforcer();
+
+        return new LeakManager<>(pCallbackClass, lockFactory, threadEnforcer, pEmitterResolver, containers, emitters, descriptors);
+    }
+
+
+    private final Class<TCallback> mCallbackClass;
     private final LockFactory mLockFactory;
     private final ThreadEnforcer mThreadEnforcer;
-    private LeakManagerConfig mConfig;
+    private final EmitterResolver mEmitterResolver;
+
     // All the current running tasks.
-    private Set<LeakContainer> mContainers;
+    private final Set<LeakContainer> mContainers;
     // Keep tracks of all emitters. Note that TaskEmitterRef uses a weak reference to avoid memory leaks. This Map is never
     // cleaned and accumulates references because it assumes that any object that managed object set doesn't grow infinitely but
     // is rather limited (e.g. typically all fragments, activity and manager in an Application).
-    private Map<TaskEmitterId, TaskEmitterRef> mEmitters;
+    private final Map<EmitterId, EmitterRef> mEmitters;
     // Allow getting back an existing descriptor through its handler when dealing with nested tasks. An AutoCleanMap is necessary
     // since there is no way to know when a handler are not necessary anymore.
-    /*private*/ Map<TCallback, TaskDescriptor> mDescriptors; // TODO Handle this with a counter in descriptor?
+    /*private*/ final Map<TCallback, CallbackDescriptor> mDescriptors; // TODO Handle WeakRef removal this with a kind of counter in descriptor?
 
 
-    public LeakManagerImpl(LockFactory pLockFactory, ThreadEnforcer pThreadEnforcer,
-                           Class<TCallback> pCallbackClass, LeakManagerConfig pConfig, Set<LeakContainer> pContainers,
-                           Map<TaskEmitterId, TaskEmitterRef> pEmitters, Map<TCallback, TaskDescriptor> pDescriptors) {
+    protected LeakManager(Class<TCallback> pCallbackClass, LockFactory pLockFactory, ThreadEnforcer pThreadEnforcer,
+                          EmitterResolver pEmitterResolver, Set<LeakContainer> pContainers,
+                          Map<EmitterId, EmitterRef> pEmitters, Map<TCallback, CallbackDescriptor> pDescriptors) {
         super();
 
+        mCallbackClass = pCallbackClass;
         mLockFactory = pLockFactory;
         mThreadEnforcer = pThreadEnforcer;
-        mCallbackClass = pCallbackClass;
-        mConfig = pConfig;
+        mEmitterResolver = pEmitterResolver;
+
         mContainers = pContainers;
         mEmitters = pEmitters;
         mDescriptors = pDescriptors;
     }
 
-    @Override
     public void manage(Object pEmitter) {
         if (pEmitter == null) throw new NullPointerException("Emitter is null");
         mThreadEnforcer.enforce();
 
         // Save the new emitter in the reference list. Replace the existing one, if any, according to its id (the old one is
         // considered obsolete). Emitter Id is computed by the configuration and can be null if emitter is not managed.
-        Object lEmitterIdValue = mConfig.resolveEmitterId(pEmitter);
+        Object lEmitterIdValue = mEmitterResolver.resolveEmitterId(pEmitter);
         // Emitter id must not be the emitter itself or we have a leak. Warn user about this (tempting) configuration misuse.
         if ((lEmitterIdValue == null) || (lEmitterIdValue == pEmitter)) throw invalidEmitterId(lEmitterIdValue, pEmitter);
 
         // Save the reference of the emitter. Initialize it lazily if it doesn't exist.
-        TaskEmitterId lEmitterId = new TaskEmitterId(pEmitter.getClass(), lEmitterIdValue);
-        TaskEmitterRef lEmitterRef = mEmitters.get(lEmitterId);
+        EmitterId lEmitterId = new EmitterId(pEmitter.getClass(), lEmitterIdValue);
+        EmitterRef lEmitterRef = mEmitters.get(lEmitterId);
         if (lEmitterRef == null) {
-            /*lEmitterRef =*/ mEmitters.put(lEmitterId, new TaskEmitterRef(lEmitterId, pEmitter));
+            /*lEmitterRef =*/ mEmitters.put(lEmitterId, new EmitterRef(lEmitterId, pEmitter));
         } else {
             lEmitterRef.set(pEmitter);
         }
     }
 
-    @Override
     public void unmanage(Object pEmitter) {
         if (pEmitter == null) throw new NullPointerException("Emitter is null");
         mThreadEnforcer.enforce();
@@ -149,17 +182,16 @@ public class LeakManagerImpl<TCallback> implements LeakManager<TCallback> {
         // short period of time).
         // TODO (lEmitterRef.get() == pEmitter) is not a proper way to handle unmanage() when dealing with activities since this
         // can lead to concurrency defects. It would be better to force call to unmanage().
-        Object lEmitterIdValue = mConfig.resolveEmitterId(pEmitter);
+        Object lEmitterIdValue = mEmitterResolver.resolveEmitterId(pEmitter);
         if (lEmitterIdValue != null) {
-            TaskEmitterId lEmitterId = new TaskEmitterId(pEmitter.getClass(), lEmitterIdValue);
-            TaskEmitterRef lEmitterRef = mEmitters.get(lEmitterId);
+            EmitterId lEmitterId = new EmitterId(pEmitter.getClass(), lEmitterIdValue);
+            EmitterRef lEmitterRef = mEmitters.get(lEmitterId);
             if ((lEmitterRef != null) && (lEmitterRef.get() == pEmitter)) {
                 lEmitterRef.clear();
             }
         }
     }
 
-    @Override
     public LeakContainer wrap(TCallback pCallback) {
         if (pCallback == null) throw new NullPointerException("Callback is null");
         mThreadEnforcer.enforce();
@@ -192,19 +224,20 @@ public class LeakManagerImpl<TCallback> implements LeakManager<TCallback> {
      * @param pEmitter Emitter to find the reference of.
      * @return Emitter reference. No null is returned.
      */
-    protected TaskEmitterRef resolveEmitterRef(Object pEmitter) {
+    @Override
+    public EmitterRef resolveEmitterRef(Object pEmitter) {
         // Save the new emitter in the reference list. Replace the existing one, if any, according to its id (the old one is
         // considered obsolete). Emitter Id is computed by the configuration strategy. Note that an emitter Id can be null if no
         // dereferencing should be performed.
-        Object lEmitterIdValue = mConfig.resolveEmitterId(pEmitter);
+        Object lEmitterIdValue = mEmitterResolver.resolveEmitterId(pEmitter);
         // Emitter id must not be the emitter itself or we have a leak. Warn user about this (tempting) configuration misuse.
         // Note that when we arrive here, pEmitter can't be null.
         if (lEmitterIdValue == pEmitter) throw invalidEmitterId(lEmitterIdValue, pEmitter);
 
-        TaskEmitterRef lEmitterRef;
+        EmitterRef lEmitterRef;
         // Managed emitter case.
         if (lEmitterIdValue != null) {
-            TaskEmitterId lEmitterId = new TaskEmitterId(pEmitter.getClass(), lEmitterIdValue);
+            EmitterId lEmitterId = new EmitterId(pEmitter.getClass(), lEmitterIdValue);
             lEmitterRef = mEmitters.get(lEmitterId);
             // If emitter is managed by the user explicitly and is properly registered in the emitter list, do nothing. User can
             // update reference himself through manage(Object) later. But if emitter is managed (i.e. emitter Id returned by
@@ -213,19 +246,21 @@ public class LeakManagerImpl<TCallback> implements LeakManager<TCallback> {
         }
         // Unmanaged emitter case.
         else {
-            if (!mConfig.allowUnmanagedEmitters()) throw unmanagedEmittersNotAllowed(pEmitter);
+            // TODO The EmitterResolver should throw in that case? Document...
+            //if (!mEmitterResolver.allowUnmanagedEmitters()) throw unmanagedEmittersNotAllowed(pEmitter);
             // TODO This is wrong! There should be only one TaskEmitterRef per emitter or concurrency problems may occur.
-            lEmitterRef = new TaskEmitterRef(pEmitter);
+            lEmitterRef = new EmitterRef(pEmitter);
         }
         return lEmitterRef;
     }
 
-    protected TaskDescriptor resolveDescriptor(Field pField, Object pEmitter) {
+    @Override
+    public CallbackDescriptor resolveDescriptor(Field pField, Object pEmitter) {
         if (!mCallbackClass.isAssignableFrom(pField.getType())) return null;
 
         @SuppressWarnings("SuspiciousMethodCalls")
-        TaskDescriptor lDescriptor = mDescriptors.get(pEmitter);
-        if (lDescriptor == null) return lDescriptor;
+        CallbackDescriptor lDescriptor = mDescriptors.get(pEmitter);
+        if (lDescriptor != null) return lDescriptor;
         else throw taskExecutedFromUnexecutedTask(pEmitter);
     }
 
@@ -234,7 +269,6 @@ public class LeakManagerImpl<TCallback> implements LeakManager<TCallback> {
      *
      * @param pContainer Finished task container.
      */
-    @Override
     @SuppressWarnings("SuspiciousMethodCalls")
     public void unwrap(LeakContainer pContainer) {
         mContainers.remove(pContainer);
@@ -247,7 +281,7 @@ public class LeakManagerImpl<TCallback> implements LeakManager<TCallback> {
         // Handlers
         private TCallback mTask; // Cannot be null
         // Container info.
-        private volatile TaskDescriptor mDescriptor = null;
+        private volatile CallbackDescriptor mDescriptor = null;
 
         public LeakContainerImpl(TCallback pTask) {
             super();
@@ -270,7 +304,7 @@ public class LeakManagerImpl<TCallback> implements LeakManager<TCallback> {
          * @param pTaskResult Task handler that must replace previous one.
          */
         public void rebind(TCallback pTaskResult) {
-            final TaskDescriptor lDescriptor = new TaskDescriptor(pTaskResult, mLockFactory.create());
+            final CallbackDescriptor lDescriptor = new CallbackDescriptor(LeakManager.this, pTaskResult, mLockFactory.create());
             mDescriptor = lDescriptor;
             // TODO restore(lDescriptor); Event to know when rebound.
             // Save the descriptor so that any child task can use current descriptor as a parent.

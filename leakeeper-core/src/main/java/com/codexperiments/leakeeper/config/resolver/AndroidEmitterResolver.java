@@ -1,36 +1,28 @@
-package com.codexperiments.leakeeper.task.impl;
+package com.codexperiments.leakeeper.config.resolver;
 
 import android.annotation.TargetApi;
 import android.app.Activity;
-import android.app.Application;
-import android.content.pm.ApplicationInfo;
 import android.os.Build;
 import android.text.TextUtils;
-
-import com.codexperiments.leakeeper.task.LeakManagerConfig;
 
 /**
  * Example configuration that handles basic Android components: Activity and Fragments.
  */
-public class AndroidLeakManagerConfig implements LeakManagerConfig {
-    private Application mApplication;
+public class AndroidEmitterResolver implements EmitterResolver {
+    private final Class<?> mFragmentClass;
+    private final Class<?> mFragmentCompatClass;
 
-    private Class<?> mFragmentClass;
-    private Class<?> mFragmentCompatClass;
+    public AndroidEmitterResolver() {
+        mFragmentClass = tryToLoadClass("android.app.Fragment");
+        mFragmentCompatClass = tryToLoadClass("android.support.v4.app.Fragment");
+    }
 
-    public AndroidLeakManagerConfig(Application pApplication) {
-        mApplication = pApplication;
-
-        ClassLoader lClassLoader = getClass().getClassLoader();
+    private Class<?> tryToLoadClass(String pName) {
         try {
-            mFragmentClass = Class.forName("android.app.Fragment", false, lClassLoader);
-        } catch (ClassNotFoundException eClassNotFoundException) {
-            // Current platform doesn't seem to support fragments.
-        }
-        try {
-            mFragmentCompatClass = Class.forName("android.support.v4.app.Fragment", false, lClassLoader);
+            return Class.forName(pName, false, getClass().getClassLoader());
         } catch (ClassNotFoundException eClassNotFoundException) {
             // Current application doesn't embed compatibility library.
+            return null;
         }
     }
 
@@ -88,20 +80,5 @@ public class AndroidLeakManagerConfig implements LeakManagerConfig {
         } else {
             return pFragment.getClass();
         }
-    }
-
-    @Override
-    public boolean allowUnmanagedEmitters() {
-        return true;
-    }
-
-    @Override
-    public boolean allowInnerTasks() {
-        return true;
-    }
-
-    @Override
-    public boolean crashOnHandlerFailure() {
-        return (mApplication.getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0;
     }
 }

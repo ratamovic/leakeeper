@@ -1,4 +1,4 @@
-package com.codexperiments.leakeeper.task;
+package com.codexperiments.leakeeper.config.factory;
 
 import java.util.concurrent.locks.Lock;
 

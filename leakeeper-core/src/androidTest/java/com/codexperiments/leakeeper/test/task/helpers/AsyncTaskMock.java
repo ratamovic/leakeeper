@@ -4,8 +4,8 @@ import android.annotation.TargetApi;
 import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Looper;
-import com.codexperiments.leakeeper.task.LeakContainer;
-import com.codexperiments.leakeeper.task.LeakManager;
+import com.codexperiments.leakeeper.LeakContainer;
+import com.codexperiments.leakeeper.LeakManager;
 
 import java.util.concurrent.*;
 

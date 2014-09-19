@@ -1,4 +1,4 @@
-package com.codexperiments.leakeeper.task.impl;
+package com.codexperiments.leakeeper;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -6,19 +6,19 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.locks.Lock;
 
-import static com.codexperiments.leakeeper.task.impl.LeakManagerException.emitterIdCouldNotBeDetermined;
-import static com.codexperiments.leakeeper.task.impl.LeakManagerException.internalError;
-import static com.codexperiments.leakeeper.task.impl.LeakManagerException.taskExecutedFromUnexecutedTask;
+import static com.codexperiments.leakeeper.LeakException.emitterIdCouldNotBeDetermined;
+import static com.codexperiments.leakeeper.LeakException.internalError;
 
 /**
  * Contain all the information necessary to restore all the emitters (even parent emitters) of a task. Once prepareToRun() is
  * called, the content of this class is not modified anymore (except the emitter and the reference counter dedicated to
  * referencing and dereferencing).
  */
-class TaskDescriptor {
+public final class CallbackDescriptor {
+    private final Resolver mResolver;
     private final Object mCallback;
-    private List<TaskEmitterDescriptor> mEmitterDescriptors; // Never modified once initialized in prepareDescriptor().
-    private List<TaskDescriptor> mParentDescriptors; // Never modified once initialized in prepareDescriptor().
+    private List<EmitterDescriptor> mEmitterDescriptors; // Never modified once initialized in prepareDescriptor().
+    private List<CallbackDescriptor> mParentDescriptors; // Never modified once initialized in prepareDescriptor().
     // Counts the number of time a task has been referenced without being dereferenced. A task will be dereferenced only when
     // this counter reaches 0, which means that no other task needs references to be set. This situation can occur for example
     // when starting a child task from a parent task handler (e.g. in onFinish()): when the child task is launched, it must
@@ -27,7 +27,8 @@ class TaskDescriptor {
     private final Lock mLock;
 
     // TODO Boolean option to indicate if we should look for emitter or if task is not "managed".
-    public TaskDescriptor(Object pCallback, Lock pLock) {
+    public CallbackDescriptor(Resolver pResolver, Object pCallback, Lock pLock) {
+        mResolver = pResolver;
         mCallback = pCallback;
         mEmitterDescriptors = null;
         mParentDescriptors = null;
@@ -41,9 +42,9 @@ class TaskDescriptor {
         return pTask == mCallback;
     }
 
-    public boolean usesEmitter(TaskEmitterId pEmitterId) {
+    public boolean usesEmitter(EmitterId pEmitterId) {
         if (mEmitterDescriptors != null) {
-            for (TaskEmitterDescriptor lEmitterDescriptor : mEmitterDescriptors) {
+            for (EmitterDescriptor lEmitterDescriptor : mEmitterDescriptors) {
                 if (lEmitterDescriptor.usesEmitter(pEmitterId)) {
                     return true;
                 }
@@ -77,7 +78,7 @@ class TaskDescriptor {
             }
         } finally {
             if (mEmitterDescriptors != null) {
-                for (TaskEmitterDescriptor lEmitterDescriptor : mEmitterDescriptors) {
+                for (EmitterDescriptor lEmitterDescriptor : mEmitterDescriptors) {
                     lEmitterDescriptor.dereference(mCallback);
                 }
             }
@@ -95,11 +96,11 @@ class TaskDescriptor {
             pField.setAccessible(true);
 
             // Extract the emitter "reflectively" and compute its Id.
-            TaskEmitterRef lEmitterRef;
+            EmitterRef lEmitterRef;
             Object lEmitter = pField.get(mCallback);
 
             if (lEmitter != null) {
-                lEmitterRef = resolveRef(lEmitter);
+                lEmitterRef = mResolver.resolveEmitterRef(lEmitter);
                 lookForParentDescriptor(pField, lEmitter);
             }
             // If reference is null, that means the emitter is probably used in a parent container and already managed.
@@ -122,7 +123,7 @@ class TaskDescriptor {
                     // Most of the time, a task will have only one emitter. Hence a capacity of 1.
                     mEmitterDescriptors = new ArrayList<>(1);
                 }
-                mEmitterDescriptors.add(new TaskEmitterDescriptor(pField, lEmitterRef));
+                mEmitterDescriptors.add(new EmitterDescriptor(pField, lEmitterRef));
             } else {
                 // Maybe this is too brutal and we should do nothing, hoping that no access will be made. But for the moment I
                 // really think this case should never happen under normal conditions. See the big paragraph above...
@@ -140,12 +141,12 @@ class TaskDescriptor {
      * @param pField Emitter field.
      * @return The emitter if it could be found or null else.
      */
-    private TaskEmitterRef resolveRefInParentDescriptors(Field pField) {
+    private EmitterRef resolveRefInParentDescriptors(Field pField) {
         if (mParentDescriptors != null) {
-            for (TaskDescriptor lParentDescriptor : mParentDescriptors) {
-                TaskEmitterRef lEmitterRef;
+            for (CallbackDescriptor lParentDescriptor : mParentDescriptors) {
+                EmitterRef lEmitterRef;
                 if (mEmitterDescriptors != null) {
-                    for (TaskEmitterDescriptor lParentEmitterDescriptor : lParentDescriptor.mEmitterDescriptors) {
+                    for (EmitterDescriptor lParentEmitterDescriptor : lParentDescriptor.mEmitterDescriptors) {
                         // We have found the right ref if its field has the same type than the field of the emitter we look
                         // for.
                         // I turned my mind upside-down but this seems to work.
@@ -169,7 +170,7 @@ class TaskDescriptor {
      * @param pEmitter Effective emitter reference. Must not be null.
      */
     private void lookForParentDescriptor(Field pField, Object pEmitter) {
-        TaskDescriptor lDescriptor = resolveDescriptor(pField, pEmitter);
+        CallbackDescriptor lDescriptor = mResolver.resolveDescriptor(pField, pEmitter);
         if (lDescriptor != null) {
             if (mParentDescriptors == null) {
                 // A task will have most of the time no parents. Hence lazy-initialization. But if that's not the case, then a
@@ -230,10 +231,10 @@ class TaskDescriptor {
      * @return True if restoration was performed properly. This may be false if a previously managed object become unmanaged
      * meanwhile.
      */
-    protected/*private*/ boolean referenceEmitter(boolean pRollbackOnFailure) {
+    public boolean referenceEmitter(boolean pRollbackOnFailure) {
         // Try to restore emitters in parent containers first. Everything is rolled-back if referencing fails.
         if (mParentDescriptors != null) {
-            for (TaskDescriptor lParentDescriptor : mParentDescriptors) {
+            for (CallbackDescriptor lParentDescriptor : mParentDescriptors) {
                 if (!lParentDescriptor.referenceEmitter(pRollbackOnFailure)) return false;
             }
         }
@@ -247,11 +248,11 @@ class TaskDescriptor {
                 // to manage() on another thread during referenceEmitter() may cause two different emitters to be restored
                 // whereas we would expect the same ref.
                 if ((mReferenceCounter++) == 0) {
-                    for (TaskEmitterDescriptor lEmitterDescriptor : mEmitterDescriptors) {
+                    for (EmitterDescriptor lEmitterDescriptor : mEmitterDescriptors) {
                         if (!lEmitterDescriptor.reference(mCallback) && pRollbackOnFailure) {
                             // Rollback modifications in case of failure.
                             --mReferenceCounter;
-                            for (TaskEmitterDescriptor lRolledEmitterDescriptor : mEmitterDescriptors) {
+                            for (EmitterDescriptor lRolledEmitterDescriptor : mEmitterDescriptors) {
                                 if (lRolledEmitterDescriptor == lEmitterDescriptor) break;
                                 lRolledEmitterDescriptor.dereference(mCallback);
                             }
@@ -261,11 +262,11 @@ class TaskDescriptor {
                 }
             }
             // Note: Rollback any modifications if an exception occurs. Having an exception here denotes an internal bug.
-            catch (LeakManagerException eLeakManagerAndroidException) {
+            catch (LeakException eLeakManagerAndroidException) {
                 --mReferenceCounter;
                 // Note that if referencing failed at some point, dereferencing is likely to fail too. That's not a big
                 // issue since an exception will be thrown in both cases anyway.
-                for (TaskEmitterDescriptor lRolledEmitterDescriptor : mEmitterDescriptors) {
+                for (EmitterDescriptor lRolledEmitterDescriptor : mEmitterDescriptors) {
                     lRolledEmitterDescriptor.dereference(mCallback);
                 }
                 throw eLeakManagerAndroidException;
@@ -279,10 +280,10 @@ class TaskDescriptor {
     /**
      * Remove emitter references from the task handler. Called after each task handler is executed to avoid memory leaks.
      */
-    protected/*private*/ void dereferenceEmitter() {
+    public void dereferenceEmitter() {
         // Try to dereference emitters in parent containers first.
         if (mParentDescriptors != null) {
-            for (TaskDescriptor lParentDescriptor : mParentDescriptors) {
+            for (CallbackDescriptor lParentDescriptor : mParentDescriptors) {
                 lParentDescriptor.dereferenceEmitter();
             }
         }
@@ -293,7 +294,7 @@ class TaskDescriptor {
                 // Note: No need to rollback modifications if an exception occur. Leave references as is, thus creating a
                 // memory leak. We can't do much about it since having an exception here denotes an internal bug.
                 if ((--mReferenceCounter) == 0) {
-                    for (TaskEmitterDescriptor lEmitterDescriptor : mEmitterDescriptors) {
+                    for (EmitterDescriptor lEmitterDescriptor : mEmitterDescriptors) {
                         lEmitterDescriptor.dereference(mCallback);
                     }
                 }
@@ -301,5 +302,12 @@ class TaskDescriptor {
                 mLock.unlock();
             }
         }
+    }
+
+
+    public interface Resolver {
+        EmitterRef resolveEmitterRef(Object pEmitter);
+
+        CallbackDescriptor resolveDescriptor(Field pField, Object pEmitter);
     }
 }
