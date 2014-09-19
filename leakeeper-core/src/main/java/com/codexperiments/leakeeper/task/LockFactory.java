@@ -1,4 +1,4 @@
-package com.codexperiments.leakeeper.task.android;
+package com.codexperiments.leakeeper.task;
 
 import java.util.concurrent.locks.Lock;
 

@@ -1,17 +1,17 @@
-package com.codexperiments.leakeeper.task.android;
+package com.codexperiments.leakeeper.task.factory;
 
 import android.os.Looper;
-import com.codexperiments.leakeeper.task.LeakContainer;
-import com.codexperiments.leakeeper.task.LeakManagerConfig;
+import com.codexperiments.leakeeper.task.*;
+import com.codexperiments.leakeeper.task.impl.LeakManagerImpl;
+import com.codexperiments.leakeeper.task.impl.*;
 import com.codexperiments.leakeeper.task.util.AutoCleanMap;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 
-import static com.codexperiments.leakeeper.task.android.AndroidLeakManagerException.mustBeExecutedFromUIThread;
+import static com.codexperiments.leakeeper.task.impl.LeakManagerException.mustBeExecutedFromUIThread;
 
 /**
  * Everything is done on the UI-Thread. No lock required.
@@ -20,7 +20,7 @@ public class UIThreadLeakManagerFactory implements LeakManagerFactory {
     private static final int DEFAULT_CAPACITY = 64;
 
     @Override
-    public <TCallback> AndroidLeakManager<TCallback> createManager(Class<TCallback> pCallbackClass, LeakManagerConfig pConfig) {
+    public <TCallback> LeakManagerImpl<TCallback> createManager(Class<TCallback> pCallbackClass, LeakManagerConfig pConfig) {
         Set<LeakContainer> containers = new HashSet<>(DEFAULT_CAPACITY);
         Map<TaskEmitterId, TaskEmitterRef> emitters = new HashMap<>(DEFAULT_CAPACITY);
         Map<TCallback, TaskDescriptor> descriptors = new AutoCleanMap<>(DEFAULT_CAPACITY);
@@ -43,7 +43,7 @@ public class UIThreadLeakManagerFactory implements LeakManagerFactory {
             }
         };
 
-        return new AndroidLeakManager<TCallback>(lockFactory, threadEnforcer, pCallbackClass, pConfig, containers, emitters, descriptors);
+        return new LeakManagerImpl<TCallback>(lockFactory, threadEnforcer, pCallbackClass, pConfig, containers, emitters, descriptors);
     }
 
     private static class EmptyLock implements Lock {

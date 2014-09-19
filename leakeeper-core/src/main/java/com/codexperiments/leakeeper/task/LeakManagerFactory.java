@@ -1,12 +1,11 @@
-package com.codexperiments.leakeeper.task.android;
+package com.codexperiments.leakeeper.task;
 
 import com.codexperiments.leakeeper.task.LeakManagerConfig;
-
-import java.util.concurrent.locks.Lock;
+import com.codexperiments.leakeeper.task.impl.LeakManagerImpl;
 
 /**
  * Allows changing the way things are synchronized in the code (i.e. everything on the UI-Thread or multi-threaded).
  */
 public interface LeakManagerFactory {
-    <TCallback> AndroidLeakManager<TCallback> createManager(Class<TCallback> pCallbackClass, LeakManagerConfig pConfig);
+    <TCallback> LeakManagerImpl<TCallback> createManager(Class<TCallback> pCallbackClass, LeakManagerConfig pConfig);
 }

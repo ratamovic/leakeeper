@@ -1,8 +1,8 @@
-package com.codexperiments.leakeeper.task.android;
+package com.codexperiments.leakeeper.task.factory;
 
-import android.os.Looper;
-import com.codexperiments.leakeeper.task.LeakContainer;
-import com.codexperiments.leakeeper.task.LeakManagerConfig;
+import com.codexperiments.leakeeper.task.*;
+import com.codexperiments.leakeeper.task.impl.LeakManagerImpl;
+import com.codexperiments.leakeeper.task.impl.*;
 import com.codexperiments.leakeeper.task.util.AutoCleanMap;
 
 import java.util.Collections;
@@ -12,8 +12,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import static com.codexperiments.leakeeper.task.android.AndroidLeakManagerException.mustBeExecutedFromUIThread;
-
 /**
  * Tasks and handlers can be executed on any threads concurrently.
  */
@@ -21,7 +19,7 @@ public class MultiThreadLeakManagerFactory implements LeakManagerFactory {
     private static final int DEFAULT_CAPACITY = 64;
 
     @Override
-    public <TCallback> AndroidLeakManager<TCallback> createManager(Class<TCallback> pCallbackClass, LeakManagerConfig pConfig) {
+    public <TCallback> LeakManagerImpl<TCallback> createManager(Class<TCallback> pCallbackClass, LeakManagerConfig pConfig) {
         Set<LeakContainer> containers = Collections.newSetFromMap(new ConcurrentHashMap<LeakContainer, Boolean>(DEFAULT_CAPACITY));
         Map<TaskEmitterId, TaskEmitterRef> emitters = new ConcurrentHashMap<>(DEFAULT_CAPACITY);
         Map<TCallback, TaskDescriptor> descriptors = new AutoCleanMap<>(DEFAULT_CAPACITY);
@@ -40,6 +38,6 @@ public class MultiThreadLeakManagerFactory implements LeakManagerFactory {
             }
         };
 
-        return new AndroidLeakManager<TCallback>(lockFactory, threadEnforcer, pCallbackClass, pConfig, containers, emitters, descriptors);
+        return new LeakManagerImpl<TCallback>(lockFactory, threadEnforcer, pCallbackClass, pConfig, containers, emitters, descriptors);
     }
 }

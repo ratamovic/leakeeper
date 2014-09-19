@@ -1,4 +1,4 @@
-package com.codexperiments.leakeeper.task.android;
+package com.codexperiments.leakeeper.task.impl;
 
 import java.lang.ref.WeakReference;
 
@@ -6,7 +6,7 @@ import java.lang.ref.WeakReference;
  * Represents a reference to an emitter. Its goal is to add a level of indirection to the emitter so that several tasks can easily
  * share updates made to an emitter.
  */
-final class TaskEmitterRef {
+public final class TaskEmitterRef {
     private final TaskEmitterId mEmitterId;
     private volatile WeakReference<Object> mEmitterRef;
 

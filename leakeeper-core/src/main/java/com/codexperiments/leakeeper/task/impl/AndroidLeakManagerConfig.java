@@ -1,8 +1,4 @@
-package com.codexperiments.leakeeper.task.android;
-
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
+package com.codexperiments.leakeeper.task.impl;
 
 import android.annotation.TargetApi;
 import android.app.Activity;

@@ -1,10 +1,10 @@
-package com.codexperiments.leakeeper.task.android;
+package com.codexperiments.leakeeper.task.impl;
 
 /**
  * Contains the information to store the Id of an emitter. Emitter class is necessary since if internal Ids may be quite common
  * and thus similar between emitters of different types (e.g. fragments which have integer Ids starting from 0).
  */
-final class TaskEmitterId {
+public final class TaskEmitterId {
     private final Class<?> mType;
     private final Object mId;
 
