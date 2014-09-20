@@ -19,7 +19,8 @@ public class AndroidEmitterResolver implements EmitterResolver {
 
     private Class<?> tryToLoadClass(String pName) {
         try {
-            return Class.forName(pName, false, getClass().getClassLoader());
+            // Cast necessary because of an annoying bug in Intellij (See http://youtrack.jetbrains.com/issue/IDEA-79680).
+            return Class.forName(pName, false, ((Object) this).getClass().getClassLoader());
         } catch (ClassNotFoundException eClassNotFoundException) {
             // Current application doesn't embed compatibility library.
             return null;

@@ -83,26 +83,20 @@ import static com.codexperiments.leakeeper.CallbackException.*;
 public class CallbackManager<TCallback> {
     private static final int DEFAULT_CAPACITY = 64;
 
-    public static <TCallback> CallbackManager<TCallback> singleThreaded(Class<TCallback> pCallbackClass, EmitterResolver pEmitterResolver) {
-        Set<CallbackDescriptor<TCallback>> containers = new HashSet<>(DEFAULT_CAPACITY);
+    public static <TCallback> CallbackManager<TCallback> singleThreaded(Class<TCallback> pCallbackClass, EmitterResolver pEmitterResolver, ThreadEnforcer pThreadEnforcer) {
         Map<EmitterId, EmitterRef> emitters = new HashMap<>(DEFAULT_CAPACITY);
-        Map<TCallback, CallbackDescriptor<TCallback>> descriptors = AutoCleanMap.create(DEFAULT_CAPACITY);
+        Map<TCallback, CallbackContainer<TCallback>> containers = AutoCleanMap.create(DEFAULT_CAPACITY);
         LockFactory lockFactory = new SingleThreadLockFactory();
 
-        // TODO boolean android = true; android ? new AndroidUIThreadEnforcer() :
-        ThreadEnforcer threadEnforcer = new NoThreadEnforcer();
-
-        return new CallbackManager<>(pCallbackClass, lockFactory, threadEnforcer, pEmitterResolver, containers, emitters, descriptors);
+        return new CallbackManager<>(pCallbackClass, lockFactory, pThreadEnforcer, pEmitterResolver, emitters, containers);
     }
 
-    public static <TCallback> CallbackManager<TCallback> multiThreaded(Class<TCallback> pCallbackClass, EmitterResolver pEmitterResolver) {
-        Set<CallbackDescriptor<TCallback>> containers = Collections.newSetFromMap(new ConcurrentHashMap<CallbackDescriptor<TCallback>, Boolean>(DEFAULT_CAPACITY));
+    public static <TCallback> CallbackManager<TCallback> multiThreaded(Class<TCallback> pCallbackClass, EmitterResolver pEmitterResolver, ThreadEnforcer pThreadEnforcer) {
         Map<EmitterId, EmitterRef> emitters = new ConcurrentHashMap<>(DEFAULT_CAPACITY);
-        Map<TCallback, CallbackDescriptor<TCallback>> descriptors = AutoCleanMap.create(DEFAULT_CAPACITY);
+        Map<TCallback, CallbackContainer<TCallback>> containers = AutoCleanMap.create(DEFAULT_CAPACITY);
         LockFactory lockFactory = new MultiThreadLockFactory();
-        ThreadEnforcer threadEnforcer = new NoThreadEnforcer();
 
-        return new CallbackManager<>(pCallbackClass, lockFactory, threadEnforcer, pEmitterResolver, containers, emitters, descriptors);
+        return new CallbackManager<>(pCallbackClass, lockFactory, pThreadEnforcer, pEmitterResolver, emitters, containers);
     }
 
 
@@ -117,12 +111,11 @@ public class CallbackManager<TCallback> {
     private final Map<EmitterId, EmitterRef> mEmitters;
     // Allow getting back an existing descriptor through its handler when dealing with nested tasks. An AutoCleanMap is necessary
     // since there is no way to know when a handler are not necessary anymore.
-    /*private*/ final Map<TCallback, CallbackDescriptor<TCallback>> mDescriptors; // TODO Handle WeakRef removal this with a kind of counter in descriptor?
+    /*private*/ final Map<TCallback, CallbackContainer<TCallback>> mContainers; // TODO Handle WeakRef removal this with a kind of counter in descriptor?
 
 
     protected CallbackManager(Class<TCallback> pCallbackClass, LockFactory pLockFactory, ThreadEnforcer pThreadEnforcer,
-                              EmitterResolver pEmitterResolver, Set<CallbackDescriptor<TCallback>> pContainers,
-                              Map<EmitterId, EmitterRef> pEmitters, Map<TCallback, CallbackDescriptor<TCallback>> pDescriptors) {
+                              EmitterResolver pEmitterResolver, Map<EmitterId, EmitterRef> pEmitters, Map<TCallback, CallbackContainer<TCallback>> pContainers) {
         super();
 
         mCallbackClass = pCallbackClass;
@@ -131,7 +124,7 @@ public class CallbackManager<TCallback> {
         mEmitterResolver = pEmitterResolver;
 
         mEmitters = pEmitters;
-        mDescriptors = pDescriptors;
+        mContainers = pContainers;
     }
 
     public void manage(Object pEmitter) {
@@ -140,18 +133,18 @@ public class CallbackManager<TCallback> {
 
         // Save the new emitter in the reference list. Replace the existing one, if any, according to its id (the old one is
         // considered obsolete). Emitter Id is computed by the configuration and can be null if emitter is not managed.
-        Object lEmitterIdValue = mEmitterResolver.resolveEmitterId(pEmitter);
+        Object emitterIdValue = mEmitterResolver.resolveEmitterId(pEmitter);
         // Emitter id must not be the emitter itself or we have a leak. Warn user about this (tempting) configuration misuse.
-        if ((lEmitterIdValue == null) || (lEmitterIdValue == pEmitter)) throw invalidEmitterId(lEmitterIdValue, pEmitter);
+        if ((emitterIdValue == null) || (emitterIdValue == pEmitter)) throw invalidEmitterId(emitterIdValue, pEmitter);
 
         // Save the reference of the emitter. Initialize it lazily if it doesn't exist.
-        EmitterId lEmitterId = new EmitterId(pEmitter.getClass(), lEmitterIdValue);
-        EmitterRef lEmitterRef = mEmitters.get(lEmitterId);
-        if (lEmitterRef == null) {
+        EmitterId emitterId = new EmitterId(pEmitter.getClass(), emitterIdValue);
+        EmitterRef emitterRef = mEmitters.get(emitterId);
+        if (emitterRef == null) {
             /*lEmitterRef =*/
-            mEmitters.put(lEmitterId, new EmitterRef(lEmitterId, pEmitter));
+            mEmitters.put(emitterId, new EmitterRef(emitterId, pEmitter));
         } else {
-            lEmitterRef.set(pEmitter);
+            emitterRef.set(pEmitter);
         }
     }
 
@@ -166,27 +159,27 @@ public class CallbackManager<TCallback> {
         // short period of time).
         // TODO (lEmitterRef.get() == pEmitter) is not a proper way to handle unmanage() when dealing with activities since this
         // can lead to concurrency defects. It would be better to force call to unmanage().
-        Object lEmitterIdValue = mEmitterResolver.resolveEmitterId(pEmitter);
-        if (lEmitterIdValue != null) {
-            EmitterId lEmitterId = new EmitterId(pEmitter.getClass(), lEmitterIdValue);
-            EmitterRef lEmitterRef = mEmitters.get(lEmitterId);
-            if ((lEmitterRef != null) && (lEmitterRef.get() == pEmitter)) {
-                lEmitterRef.clear();
+        Object emitterIdValue = mEmitterResolver.resolveEmitterId(pEmitter);
+        if (emitterIdValue != null) {
+            EmitterId emitterId = new EmitterId(pEmitter.getClass(), emitterIdValue);
+            EmitterRef emitterRef = mEmitters.get(emitterId);
+            if ((emitterRef != null) && (emitterRef.get() == pEmitter)) {
+                emitterRef.clear();
             }
         }
     }
 
-    public CallbackDescriptor<TCallback> wrap(TCallback pCallback) {
+    public CallbackContainer<TCallback> wrap(TCallback pCallback) {
         if (pCallback == null) throw new NullPointerException("Callback is null");
         mThreadEnforcer.enforce();
 
         // Create a container to run the task.
         // Prepare the task (i.e. initialize and cache needed values) after adding it because prepareToRun() is a bit
         // expensive and should be performed only if necessary.
-        final CallbackDescriptor<TCallback> lDescriptor = new CallbackDescriptor<TCallback>(this, pCallback, mLockFactory.create());
+        final CallbackContainer<TCallback> container = new CallbackContainer<TCallback>(this, pCallback, mLockFactory.create());
         // Save the descriptor so that any child task can use current descriptor as a parent.
-        mDescriptors.put(pCallback, lDescriptor);
-        return lDescriptor;
+        mContainers.put(pCallback, container);
+        return container;
     }
 
     /**
@@ -200,37 +193,37 @@ public class CallbackManager<TCallback> {
         // Save the new emitter in the reference list. Replace the existing one, if any, according to its id (the old one is
         // considered obsolete). Emitter Id is computed by the configuration strategy. Note that an emitter Id can be null if no
         // dereferencing should be performed.
-        Object lEmitterIdValue = mEmitterResolver.resolveEmitterId(pEmitter);
+        Object emitterIdValue = mEmitterResolver.resolveEmitterId(pEmitter);
         // Emitter id must not be the emitter itself or we have a leak. Warn user about this (tempting) configuration misuse.
         // Note that when we arrive here, pEmitter can't be null.
-        if (lEmitterIdValue == pEmitter) throw invalidEmitterId(lEmitterIdValue, pEmitter);
+        if (emitterIdValue == pEmitter) throw invalidEmitterId(emitterIdValue, pEmitter);
 
-        EmitterRef lEmitterRef;
+        EmitterRef emitterRef;
         // Managed emitter case.
-        if (lEmitterIdValue != null) {
-            EmitterId lEmitterId = new EmitterId(pEmitter.getClass(), lEmitterIdValue);
-            lEmitterRef = mEmitters.get(lEmitterId);
+        if (emitterIdValue != null) {
+            EmitterId emitterId = new EmitterId(pEmitter.getClass(), emitterIdValue);
+            emitterRef = mEmitters.get(emitterId);
             // If emitter is managed by the user explicitly and is properly registered in the emitter list, do nothing. User can
             // update reference himself through manage(Object) later. But if emitter is managed (i.e. emitter Id returned by
             // configuration is not null) but is not in the emitter list, then a call to manage() is missing. Warn the user.
-            if (lEmitterRef == null) throw emitterNotManaged(lEmitterIdValue, pEmitter);
+            if (emitterRef == null) throw emitterNotManaged(emitterIdValue, pEmitter);
         }
         // Unmanaged emitter case.
         else {
             // TODO The EmitterResolver should throw in that case? Document...
             //if (!mEmitterResolver.allowUnmanagedEmitters()) throw unmanagedEmittersNotAllowed(pEmitter);
             // TODO This is wrong! There should be only one TaskEmitterRef per emitter or concurrency problems may occur.
-            lEmitterRef = new EmitterRef(pEmitter);
+            emitterRef = new EmitterRef(pEmitter);
         }
-        return lEmitterRef;
+        return emitterRef;
     }
 
-    CallbackDescriptor<TCallback> resolveDescriptor(Field pField, Object pEmitter) {
+    CallbackContainer<TCallback> resolveContainer(Field pField, Object pEmitter) {
         if (!mCallbackClass.isAssignableFrom(pField.getType())) return null;
 
         @SuppressWarnings("SuspiciousMethodCalls")
-        CallbackDescriptor<TCallback> lDescriptor = mDescriptors.get(pEmitter);
-        if (lDescriptor != null) return lDescriptor;
+        CallbackContainer<TCallback> container = mContainers.get(pEmitter);
+        if (container != null) return container;
         else throw taskExecutedFromUnexecutedTask(pEmitter);
     }
 }

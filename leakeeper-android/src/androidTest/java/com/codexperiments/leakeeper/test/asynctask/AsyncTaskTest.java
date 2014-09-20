@@ -1,6 +1,8 @@
 package com.codexperiments.leakeeper.test.asynctask;
 
 import com.codexperiments.leakeeper.CallbackManager;
+import com.codexperiments.leakeeper.config.enforcer.AndroidUIThreadEnforcer;
+import com.codexperiments.leakeeper.config.enforcer.ThreadEnforcer;
 import com.codexperiments.leakeeper.config.resolver.EmitterResolver;
 import com.codexperiments.leakeeper.config.resolver.AndroidEmitterResolver;
 import com.codexperiments.leakeeper.test.common.TestCase;
@@ -26,8 +28,8 @@ public class AsyncTaskTest extends TestCase<AsyncTaskActivityMock> {
         getInstrumentation().runOnMainSync(new Runnable() {
             public void run() {
                 EmitterResolver emitterResolver = new AndroidEmitterResolver();
-                CallbackManager<AsyncTaskMock> callbackManager = CallbackManager.singleThreaded(AsyncTaskMock.class, emitterResolver);
-                register(CallbackManager.class, callbackManager);
+                ThreadEnforcer threadEnforcer = new AndroidUIThreadEnforcer();
+                register(CallbackManager.class, CallbackManager.singleThreaded(AsyncTaskMock.class, emitterResolver, threadEnforcer));
             }
         });
         return getActivity();
@@ -42,8 +44,8 @@ public class AsyncTaskTest extends TestCase<AsyncTaskActivityMock> {
                         return null; // No object is managed.
                     }
                 };
-                CallbackManager<AsyncTaskMock> callbackManager = CallbackManager.singleThreaded(AsyncTaskMock.class, emitterResolver);
-                register(CallbackManager.class, callbackManager);
+                ThreadEnforcer threadEnforcer = new AndroidUIThreadEnforcer();
+                register(CallbackManager.class, CallbackManager.singleThreaded(AsyncTaskMock.class, emitterResolver, threadEnforcer));
             }
         });
         return getActivity(unmanaged());

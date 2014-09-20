@@ -20,13 +20,13 @@ public final class EmitterId {
         if (pOther == null) return false;
         if (getClass() != pOther.getClass()) return false;
 
-        EmitterId lOther = (EmitterId) pOther;
+        EmitterId other = (EmitterId) pOther;
         if (mId == null) {
-            if (lOther.mId != null) return false;
-        } else if (!mId.equals(lOther.mId)) return false;
+            if (other.mId != null) return false;
+        } else if (!mId.equals(other.mId)) return false;
 
-        if (mType == null) return lOther.mType == null;
-        else return mType.equals(lOther.mType);
+        if (mType == null) return other.mType == null;
+        else return mType.equals(other.mType);
     }
 
     @Override

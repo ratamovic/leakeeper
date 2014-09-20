@@ -4,7 +4,7 @@ import android.annotation.TargetApi;
 import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Looper;
-import com.codexperiments.leakeeper.CallbackDescriptor;
+import com.codexperiments.leakeeper.CallbackContainer;
 import com.codexperiments.leakeeper.CallbackManager;
 
 import java.util.concurrent.*;
@@ -18,8 +18,8 @@ public abstract class AsyncTaskMock extends AsyncTask<Double, Integer, String> {
     private static final int MAX_WAIT_TIME = 10;
 
     // Callback management
-    private final CallbackManager mCallbackManager;
-    private CallbackDescriptor<AsyncTaskMock> mCallbackDescriptor = null;
+    private final CallbackManager<AsyncTaskMock> mCallbackManager;
+    private CallbackContainer<AsyncTaskMock> mCallbackContainer = null;
     // Internal state
     private final CyclicBarrier mStepBarrier;
     private boolean mRequestStop = false;
@@ -27,7 +27,7 @@ public abstract class AsyncTaskMock extends AsyncTask<Double, Integer, String> {
     private final CountDownLatch mFinishedLatch = new CountDownLatch(1);
     private String mResult = null;
 
-    AsyncTaskMock(CallbackManager pCallbackManager) {
+    AsyncTaskMock(CallbackManager<AsyncTaskMock> pCallbackManager) {
         mCallbackManager = pCallbackManager;
         mStepBarrier = new CyclicBarrier(2, new Runnable() {
             @Override
@@ -37,12 +37,7 @@ public abstract class AsyncTaskMock extends AsyncTask<Double, Integer, String> {
         });
     }
 
-
-    //region Extensions
-    protected abstract AsyncTaskActivityMock getActivity();
-
     protected abstract void onSaveResult(String result);
-    //endregion
 
 
     //region Control
@@ -108,17 +103,17 @@ public abstract class AsyncTaskMock extends AsyncTask<Double, Integer, String> {
 
     @Override
     protected final void onPreExecute() {
-        mCallbackDescriptor = mCallbackManager.wrap(this);
+        mCallbackContainer = mCallbackManager.wrap(this);
     }
 
     @Override
     protected final void onPostExecute(String result) {
-        mCallbackDescriptor.referenceEmitter(false);
+        mCallbackContainer.referenceEmitter(false);
 
         // Saves result.
         mResult = result;
         onSaveResult(result);
-        mCallbackDescriptor.dereferenceEmitter();
+        mCallbackContainer.dereferenceEmitter();
         mFinishedLatch.countDown();
     }
 

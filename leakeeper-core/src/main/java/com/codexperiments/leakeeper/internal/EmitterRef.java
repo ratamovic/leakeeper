@@ -42,9 +42,9 @@ public final class EmitterRef {
         if (pOther == null) return false;
         if (getClass() != pOther.getClass()) return false;
 
-        EmitterRef lOther = (EmitterRef) pOther;
-        if (mEmitterId == null) return lOther.mEmitterId == null;
-        else return mEmitterId.equals(lOther.mEmitterId);
+        EmitterRef other = (EmitterRef) pOther;
+        if (mEmitterId == null) return other.mEmitterId == null;
+        else return mEmitterId.equals(other.mEmitterId);
     }
 
     @Override

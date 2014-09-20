@@ -25,13 +25,12 @@ public class AutoCleanMap<TKey, TValue> extends AbstractMap<TKey, TValue> {
     }
 
     protected AutoCleanMap(int pCapacity) {
-        mMap = new ConcurrentHashMap<WeakKey<TKey>, WeakValue<TValue>>(pCapacity);
-        mQueue = new ReferenceQueue<TKey>();
+        mMap = new ConcurrentHashMap<>(pCapacity);
+        mQueue = new ReferenceQueue<>();
     }
 
     protected void startCleaning() {
         Thread thread = new Thread(new Runnable() {
-            @SuppressWarnings("unchecked")
             public void run() {
                 doClean();
             }
@@ -41,11 +40,12 @@ public class AutoCleanMap<TKey, TValue> extends AbstractMap<TKey, TValue> {
         thread.start();
     }
 
+    @SuppressWarnings("unchecked")
     protected void doClean() {
         while (true) {
             try {
-                WeakKey<TKey> lWeakKey = (WeakKey<TKey>) mQueue.remove();
-                mMap.remove(lWeakKey);
+                WeakKey<TKey> weakKey = (WeakKey<TKey>) mQueue.remove();
+                mMap.remove(weakKey);
             } catch (InterruptedException eInterruptedException) {
                 // Ignore and retry.
             }
@@ -55,22 +55,21 @@ public class AutoCleanMap<TKey, TValue> extends AbstractMap<TKey, TValue> {
     @Override
     public TValue get(Object pKey) {
         // We cannot be sure pKey is a TKey. So use a WeakKey<Object> instead of WeakKey<TKey> and type erasure will do the rest.
-        WeakValue<TValue> lWeakValue = mMap.get(new WeakKey<Object>(pKey));
-        return (lWeakValue != null) ? lWeakValue.get() : null;
+        WeakValue<TValue> weakValue = mMap.get(new WeakKey<>(pKey));
+        return (weakValue != null) ? weakValue.get() : null;
     }
 
     @Override
     public TValue put(TKey pKey, TValue pValue) {
-        mMap.put(new WeakKey<TKey>(pKey, mQueue), new WeakValue<TValue>(pValue));
+        mMap.put(new WeakKey<>(pKey, mQueue), new WeakValue<>(pValue));
         return pValue;
     }
 
     @Override
-    //@TargetApi(Build.VERSION_CODES.GINGERBREAD)
     public Set<Entry<TKey, TValue>> entrySet() {
         Set<Entry<TKey, TValue>> entrySet = new java.util.HashSet<>();
         for (Entry<WeakKey<TKey>, WeakValue<TValue>> entry : mMap.entrySet()) {
-            entrySet.add(new HashMap.SimpleEntry<TKey, TValue>(entry.getKey().get(), entry.getValue().get()));
+            entrySet.add(new HashMap.SimpleEntry<>(entry.getKey().get(), entry.getValue().get()));
         }
         return entrySet;
     }
@@ -100,9 +99,9 @@ public class AutoCleanMap<TKey, TValue> extends AbstractMap<TKey, TValue> {
             if (pOther == null) return false;
             if (getClass() != pOther.getClass()) return false;
 
-            WeakKey<TKey> lOther = (WeakKey<TKey>) pOther;
-            Object lValue = get();
-            return (lValue != null) && (lValue == lOther.get());
+            WeakKey<TKey> other = (WeakKey<TKey>) pOther;
+            Object value = get();
+            return (value != null) && (value == other.get());
         }
     }
 

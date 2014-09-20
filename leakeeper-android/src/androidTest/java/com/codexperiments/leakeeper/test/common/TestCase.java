@@ -21,7 +21,6 @@ import static org.junit.Assert.assertThat;
 public class TestCase<TActivity extends TestActivity> extends ActivityInstrumentationTestCase2<TActivity> {
     private static TestCase<?> sInstance;
 
-    private Application mApplication;
     private volatile TActivity mCurrentActivity;
     private Map<Class<?>, Object> mManagers = new HashMap<>();
 
@@ -41,14 +40,15 @@ public class TestCase<TActivity extends TestActivity> extends ActivityInstrument
 
         // Patch to synchronize Application and Test initialization, as Application initialization occurs
         // on the main thread whereas Test initialization occurs on the Instrumentation thread...
+        Application application;
         do {
             getInstrumentation().runOnMainSync(new Runnable() {
                 public void run() {
                     // No op.
                 }
             });
-            mApplication = (Application) getInstrumentation().getTargetContext().getApplicationContext();
-        } while (mApplication == null);
+            application = (Application) getInstrumentation().getTargetContext().getApplicationContext();
+        } while (application == null);
 
         // Execute initialization code on UI Thread.
         final Exception[] throwableHolder = new Exception[1];
@@ -80,10 +80,6 @@ public class TestCase<TActivity extends TestActivity> extends ActivityInstrument
 
 
     //region Accessors
-    public Application getApplication() {
-        return mApplication;
-    }
-
     @Override
     public TActivity getActivity() {
         TActivity currentActivity = mCurrentActivity;
@@ -106,6 +102,7 @@ public class TestCase<TActivity extends TestActivity> extends ActivityInstrument
         mManagers.put(pManagerClass, pCallbackManager);
     }
 
+    @SuppressWarnings("unchecked")
     public static <TActivity extends TestActivity, TManager>
     TManager inject(TActivity pActivity, Class<TManager> pManagerClass) {
         // We assume all activities will need to get a manager during initialization. Thus, at this point in the code, we can

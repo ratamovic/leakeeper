@@ -7,14 +7,9 @@ import java.lang.ref.WeakReference;
 class ClassicAsyncTaskMock extends AsyncTaskMock {
     private WeakReference<AsyncTaskActivityMock> mActivityRef;
 
-    ClassicAsyncTaskMock(CallbackManager pCallbackManager, AsyncTaskActivityMock pActivity) {
+    ClassicAsyncTaskMock(CallbackManager<AsyncTaskMock> pCallbackManager, AsyncTaskActivityMock pActivity) {
         super(pCallbackManager);
         mActivityRef = new WeakReference<>(pActivity);
-    }
-
-    @Override
-    protected AsyncTaskActivityMock getActivity() {
-        return mActivityRef.get();
     }
 
     @Override

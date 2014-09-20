@@ -15,7 +15,7 @@ import java.lang.ref.WeakReference;
 public class AsyncTaskActivityMock extends TestActivity {
     private final ValueHolder<String> mResult = new ValueHolder<>();
 
-    private CallbackManager<AsyncTaskActivityMock> mCallbackManager;
+    private CallbackManager<AsyncTaskMock> mCallbackManager;
     private boolean mManaged;
 
     public static Intent unmanaged() {
@@ -31,10 +31,11 @@ public class AsyncTaskActivityMock extends TestActivity {
 
     //region Lifecycle
     @Override
+    @SuppressWarnings("unchecked")
     protected void onCreate(Bundle pBundle) {
         super.onCreate(pBundle);
 
-        mCallbackManager = TestCase.inject(this, CallbackManager.class);
+        mCallbackManager = (CallbackManager<AsyncTaskMock>) TestCase.inject(this, CallbackManager.class);
         mManaged = getIntent().getBooleanExtra("MANAGED", true);
     }
 
@@ -61,7 +62,7 @@ public class AsyncTaskActivityMock extends TestActivity {
     /**
      * AsyncTask made of a "classic" Java class.
      */
-    public static final AsyncTaskMockFactory classicTaskFactory() {
+    public static AsyncTaskMockFactory classicTaskFactory() {
         return new AsyncTaskMockFactory() {
             @Override
             public AsyncTaskMock createFrom(AsyncTaskActivityMock pActivity) {
@@ -78,7 +79,7 @@ public class AsyncTaskActivityMock extends TestActivity {
     /**
      * AsyncTask made of a static class.
      */
-    public static final AsyncTaskMockFactory staticTaskFactory() {
+    public static AsyncTaskMockFactory staticTaskFactory() {
         return new AsyncTaskMockFactory() {
             @Override
             public AsyncTaskMock createFrom(AsyncTaskActivityMock pActivity) {
@@ -94,14 +95,9 @@ public class AsyncTaskActivityMock extends TestActivity {
     private static class StaticAsyncTaskMock extends AsyncTaskMock {
         private WeakReference<AsyncTaskActivityMock> mActivityRef;
 
-        StaticAsyncTaskMock(CallbackManager pCallbackManager, AsyncTaskActivityMock pActivity) {
+        StaticAsyncTaskMock(CallbackManager<AsyncTaskMock> pCallbackManager, AsyncTaskActivityMock pActivity) {
             super(pCallbackManager);
             mActivityRef = new WeakReference<>(pActivity);
-        }
-
-        @Override
-        protected AsyncTaskActivityMock getActivity() {
-            return mActivityRef.get();
         }
 
         @Override
@@ -117,7 +113,7 @@ public class AsyncTaskActivityMock extends TestActivity {
     /**
      * AsyncTask made of an inner class.
      */
-    public static final AsyncTaskMockFactory innerTaskFactory() {
+    public static AsyncTaskMockFactory innerTaskFactory() {
         return new AsyncTaskMockFactory() {
             @Override
             public AsyncTaskMock createFrom(AsyncTaskActivityMock pActivity) {
@@ -131,13 +127,8 @@ public class AsyncTaskActivityMock extends TestActivity {
     }
 
     private class InnerAsyncTaskMock extends AsyncTaskMock {
-        InnerAsyncTaskMock(CallbackManager pCallbackManager) {
+        InnerAsyncTaskMock(CallbackManager<AsyncTaskMock> pCallbackManager) {
             super(pCallbackManager);
-        }
-
-        @Override
-        protected AsyncTaskActivityMock getActivity() {
-            return AsyncTaskActivityMock.this;
         }
 
         @Override
@@ -152,7 +143,7 @@ public class AsyncTaskActivityMock extends TestActivity {
     /**
      * AsyncTask made of an anonymous class.
      */
-    public static final AsyncTaskMockFactory anonymousTaskFactory() {
+    public static AsyncTaskMockFactory anonymousTaskFactory() {
         return new AsyncTaskMockFactory() {
             @Override
             public AsyncTaskMock createFrom(AsyncTaskActivityMock pActivity) {
@@ -163,11 +154,6 @@ public class AsyncTaskActivityMock extends TestActivity {
 
     private AsyncTaskMock createAnonymousAsyncTask() {
         return new AsyncTaskMock(mCallbackManager) {
-            @Override
-            protected AsyncTaskActivityMock getActivity() {
-                return AsyncTaskActivityMock.this;
-            }
-
             @Override
             protected void onSaveResult(String pResult) {
                 if (AsyncTaskActivityMock.this != null) {
@@ -181,7 +167,7 @@ public class AsyncTaskActivityMock extends TestActivity {
     /**
      * AsyncTask made of a local class.
      */
-    public static final AsyncTaskMockFactory localTaskFactory() {
+    public static AsyncTaskMockFactory localTaskFactory() {
         return new AsyncTaskMockFactory() {
             @Override
             public AsyncTaskMock createFrom(AsyncTaskActivityMock pActivity) {
@@ -192,13 +178,8 @@ public class AsyncTaskActivityMock extends TestActivity {
 
     private AsyncTaskMock createLocalAsyncTask() {
         class LocalAsyncTaskMock extends AsyncTaskMock {
-            LocalAsyncTaskMock(CallbackManager pLeakManager) {
+            LocalAsyncTaskMock(CallbackManager<AsyncTaskMock> pLeakManager) {
                 super(pLeakManager);
-            }
-
-            @Override
-            protected AsyncTaskActivityMock getActivity() {
-                return AsyncTaskActivityMock.this;
             }
 
             @Override
@@ -215,7 +196,7 @@ public class AsyncTaskActivityMock extends TestActivity {
     /**
      * Inner AsyncTask executing a child anonymous AsyncTask.
      */
-    public static final AsyncTaskMockFactory hierarchicalTaskFactory() {
+    public static AsyncTaskMockFactory hierarchicalTaskFactory() {
         return new AsyncTaskMockFactory() {
             @Override
             public AsyncTaskMock createFrom(AsyncTaskActivityMock pActivity) {
@@ -232,7 +213,7 @@ public class AsyncTaskActivityMock extends TestActivity {
         private final CallbackManager<AsyncTaskMock> mCallbackManager; // Copy stored here because Activity may not be accessible.
         private AsyncTaskMock mChildAsyncTask;
 
-        HierarchicalAsyncTaskMock(CallbackManager pCallbackManager) {
+        HierarchicalAsyncTaskMock(CallbackManager<AsyncTaskMock> pCallbackManager) {
             super(pCallbackManager);
             mCallbackManager = pCallbackManager;
         }
@@ -246,20 +227,10 @@ public class AsyncTaskActivityMock extends TestActivity {
         }
 
         @Override
-        protected AsyncTaskActivityMock getActivity() {
-            return AsyncTaskActivityMock.this;
-        }
-
-        @Override
         protected void onSaveResult(String pResult) {
             // Run a child AsyncTask that processes the result.
             // Note that the result is not given back to the activity here but in the child task.
             mChildAsyncTask = new AsyncTaskMock(mCallbackManager) {
-                @Override
-                protected AsyncTaskActivityMock getActivity() {
-                    return AsyncTaskActivityMock.this;
-                }
-
                 @Override
                 protected void onSaveResult(String pResult) {
                     if (AsyncTaskActivityMock.this != null) {
