@@ -113,8 +113,6 @@ public class CallbackManager<TCallback> {
     private final ThreadEnforcer mThreadEnforcer;
     private final EmitterResolver mEmitterResolver;
 
-    // All the current running tasks.
-    private final Set<CallbackDescriptor<TCallback>> mContainers;
     // Keep tracks of all emitters. Note that TaskEmitterRef uses a weak reference to avoid memory leaks. This Map is never
     // cleaned and accumulates references because it assumes that any object that managed object set doesn't grow infinitely but
     // is rather limited (e.g. typically all fragments, activity and manager in an Application).
@@ -134,7 +132,6 @@ public class CallbackManager<TCallback> {
         mThreadEnforcer = pThreadEnforcer;
         mEmitterResolver = pEmitterResolver;
 
-        mContainers = pContainers;
         mEmitters = pEmitters;
         mDescriptors = pDescriptors;
     }
@@ -191,21 +188,7 @@ public class CallbackManager<TCallback> {
         final CallbackDescriptor lDescriptor = new CallbackDescriptor(this, pCallback, mLockFactory.create());
         // Save the descriptor so that any child task can use current descriptor as a parent.
         mDescriptors.put(pCallback, lDescriptor);
-        // TODO Do we really need this? Save the task before running it.
-        // Note that it is safe to add the task to the container since it is an empty stub that shouldn't create any side-effect.
-        mContainers.add(lDescriptor);
         return lDescriptor;
-    }
-
-    /**
-     * Called when task is processed and finished to clean remaining references.
-     *
-     * @param pContainer Finished task container.
-     */
-    @SuppressWarnings("SuspiciousMethodCalls")
-    public void unwrap(CallbackDescriptor<TCallback> pContainer) {
-        // Note that the removed container might still be referenced from a child container.
-        mContainers.remove(pContainer);
     }
 
     /**
