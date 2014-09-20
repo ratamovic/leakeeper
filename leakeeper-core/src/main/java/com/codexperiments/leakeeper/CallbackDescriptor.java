@@ -1,6 +1,8 @@
-package com.codexperiments.leakeeper.internal;
+package com.codexperiments.leakeeper;
 
-import com.codexperiments.leakeeper.LeakException;
+import com.codexperiments.leakeeper.internal.EmitterDescriptor;
+import com.codexperiments.leakeeper.internal.EmitterId;
+import com.codexperiments.leakeeper.internal.EmitterRef;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -8,19 +10,19 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.locks.Lock;
 
-import static com.codexperiments.leakeeper.LeakException.emitterIdCouldNotBeDetermined;
-import static com.codexperiments.leakeeper.LeakException.internalError;
+import static com.codexperiments.leakeeper.CallbackException.emitterIdCouldNotBeDetermined;
+import static com.codexperiments.leakeeper.CallbackException.internalError;
 
 /**
  * Contain all the information necessary to restore all the emitters (even parent emitters) of a task. Once prepareToRun() is
  * called, the content of this class is not modified anymore (except the emitter and the reference counter dedicated to
  * referencing and dereferencing).
  */
-public final class CallbackDescriptor {
-    private final Resolver mResolver;
+public final class CallbackDescriptor<TCallback> {
+    private final CallbackManager mManager;
     private final Object mCallback;
     private List<EmitterDescriptor> mEmitterDescriptors; // Never modified once initialized in prepareDescriptor().
-    private List<CallbackDescriptor> mParentDescriptors; // Never modified once initialized in prepareDescriptor().
+    private List<CallbackDescriptor<TCallback>> mParentDescriptors; // Never modified once initialized in prepareDescriptor().
     // Counts the number of time a task has been referenced without being dereferenced. A task will be dereferenced only when
     // this counter reaches 0, which means that no other task needs references to be set. This situation can occur for example
     // when starting a child task from a parent task handler (e.g. in onFinish()): when the child task is launched, it must
@@ -29,8 +31,8 @@ public final class CallbackDescriptor {
     private final Lock mLock;
 
     // TODO Boolean option to indicate if we should look for emitter or if task is not "managed".
-    public CallbackDescriptor(Resolver pResolver, Object pCallback, Lock pLock) {
-        mResolver = pResolver;
+    public CallbackDescriptor(CallbackManager pManager, Object pCallback, Lock pLock) {
+        mManager = pManager;
         mCallback = pCallback;
         mEmitterDescriptors = null;
         mParentDescriptors = null;
@@ -40,10 +42,7 @@ public final class CallbackDescriptor {
         prepareDescriptor();
     }
 
-    public boolean needDereferencing(Object pTask) {
-        return pTask == mCallback;
-    }
-
+    // TODO Useless?
     public boolean usesEmitter(EmitterId pEmitterId) {
         if (mEmitterDescriptors != null) {
             for (EmitterDescriptor lEmitterDescriptor : mEmitterDescriptors) {
@@ -53,6 +52,90 @@ public final class CallbackDescriptor {
             }
         }
         return false;
+    }
+
+    /**
+     * Restore all the emitters back into the task handler. Called before each task handler is executed to avoid
+     * NullPointerException when accessing outer emitters. Referencing can fail if an emitter has been unmanaged. In that case,
+     * any set reference is rolled-back and dereferenceEmitter() shouldn't be called. But if referencing succeeds, then
+     * dereferenceEmitter() MUST be called eventually (preferably using a finally block).
+     *
+     * @param pRollbackOnFailure True to cancel referencing if one of the emitter cannot be restored, or false if partial
+     *                           referencing is allowed.
+     * @return True if restoration was performed properly. This may be false if a previously managed object become unmanaged
+     * meanwhile.
+     */
+    public boolean referenceEmitter(boolean pRollbackOnFailure) {
+        // Try to restore emitters in parent containers first. Everything is rolled-back if referencing fails.
+        if (mParentDescriptors != null) {
+            for (CallbackDescriptor<TCallback> lParentDescriptor : mParentDescriptors) {
+                if (!lParentDescriptor.referenceEmitter(pRollbackOnFailure)) return false;
+            }
+        }
+
+        // Restore references for current container if referencing succeeded previously.
+        if (mEmitterDescriptors != null) {
+            mLock.lock();
+            try {
+                // TODO There is a race problem in this code. A TaskEmitterRef can be used several times for one
+                // TaskDescriptor because of parent or superclass emitters ref that may be identical. In that case, a call
+                // to manage() on another thread during referenceEmitter() may cause two different emitters to be restored
+                // whereas we would expect the same ref.
+                if ((mReferenceCounter++) == 0) {
+                    for (EmitterDescriptor lEmitterDescriptor : mEmitterDescriptors) {
+                        if (!lEmitterDescriptor.reference(mCallback) && pRollbackOnFailure) {
+                            // Rollback modifications in case of failure.
+                            --mReferenceCounter;
+                            for (EmitterDescriptor lRolledEmitterDescriptor : mEmitterDescriptors) {
+                                if (lRolledEmitterDescriptor == lEmitterDescriptor) break;
+                                lRolledEmitterDescriptor.dereference(mCallback);
+                            }
+                            return false;
+                        }
+                    }
+                }
+            }
+            // Note: Rollback any modifications if an exception occurs. Having an exception here denotes an internal bug.
+            catch (CallbackException eLeakManagerAndroidException) {
+                --mReferenceCounter;
+                // Note that if referencing failed at some point, dereferencing is likely to fail too. That's not a big
+                // issue since an exception will be thrown in both cases anyway.
+                for (EmitterDescriptor lRolledEmitterDescriptor : mEmitterDescriptors) {
+                    lRolledEmitterDescriptor.dereference(mCallback);
+                }
+                throw eLeakManagerAndroidException;
+            } finally {
+                mLock.unlock();
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Remove emitter references from the task handler. Called after each task handler is executed to avoid memory leaks.
+     */
+    public void dereferenceEmitter() {
+        // Try to dereference emitters in parent containers first.
+        if (mParentDescriptors != null) {
+            for (CallbackDescriptor<TCallback> lParentDescriptor : mParentDescriptors) {
+                lParentDescriptor.dereferenceEmitter();
+            }
+        }
+
+        if (mEmitterDescriptors != null) {
+            mLock.lock();
+            try {
+                // Note: No need to rollback modifications if an exception occur. Leave references as is, thus creating a
+                // memory leak. We can't do much about it since having an exception here denotes an internal bug.
+                if ((--mReferenceCounter) == 0) {
+                    for (EmitterDescriptor lEmitterDescriptor : mEmitterDescriptors) {
+                        lEmitterDescriptor.dereference(mCallback);
+                    }
+                }
+            } finally {
+                mLock.unlock();
+            }
+        }
     }
 
     /**
@@ -102,7 +185,7 @@ public final class CallbackDescriptor {
             Object lEmitter = pField.get(mCallback);
 
             if (lEmitter != null) {
-                lEmitterRef = mResolver.resolveEmitterRef(lEmitter);
+                lEmitterRef = mManager.resolveEmitter(lEmitter);
                 lookForParentDescriptor(pField, lEmitter);
             }
             // If reference is null, that means the emitter is probably used in a parent container and already managed.
@@ -145,7 +228,7 @@ public final class CallbackDescriptor {
      */
     private EmitterRef resolveRefInParentDescriptors(Field pField) {
         if (mParentDescriptors != null) {
-            for (CallbackDescriptor lParentDescriptor : mParentDescriptors) {
+            for (CallbackDescriptor<TCallback> lParentDescriptor : mParentDescriptors) {
                 EmitterRef lEmitterRef;
                 if (mEmitterDescriptors != null) {
                     for (EmitterDescriptor lParentEmitterDescriptor : lParentDescriptor.mEmitterDescriptors) {
@@ -172,7 +255,7 @@ public final class CallbackDescriptor {
      * @param pEmitter Effective emitter reference. Must not be null.
      */
     private void lookForParentDescriptor(Field pField, Object pEmitter) {
-        CallbackDescriptor lDescriptor = mResolver.resolveDescriptor(pField, pEmitter);
+        CallbackDescriptor<TCallback> lDescriptor = mManager.resolveDescriptor(pField, pEmitter);
         if (lDescriptor != null) {
             if (mParentDescriptors == null) {
                 // A task will have most of the time no parents. Hence lazy-initialization. But if that's not the case, then a
@@ -220,96 +303,5 @@ public final class CallbackDescriptor {
                 throw internalError(exception);
             }
         }
-    }
-
-    /**
-     * Restore all the emitters back into the task handler. Called before each task handler is executed to avoid
-     * NullPointerException when accessing outer emitters. Referencing can fail if an emitter has been unmanaged. In that case,
-     * any set reference is rolled-back and dereferenceEmitter() shouldn't be called. But if referencing succeeds, then
-     * dereferenceEmitter() MUST be called eventually (preferably using a finally block).
-     *
-     * @param pRollbackOnFailure True to cancel referencing if one of the emitter cannot be restored, or false if partial
-     *                           referencing is allowed.
-     * @return True if restoration was performed properly. This may be false if a previously managed object become unmanaged
-     * meanwhile.
-     */
-    public boolean referenceEmitter(boolean pRollbackOnFailure) {
-        // Try to restore emitters in parent containers first. Everything is rolled-back if referencing fails.
-        if (mParentDescriptors != null) {
-            for (CallbackDescriptor lParentDescriptor : mParentDescriptors) {
-                if (!lParentDescriptor.referenceEmitter(pRollbackOnFailure)) return false;
-            }
-        }
-
-        // Restore references for current container if referencing succeeded previously.
-        if (mEmitterDescriptors != null) {
-            mLock.lock();
-            try {
-                // TODO There is a race problem in this code. A TaskEmitterRef can be used several times for one
-                // TaskDescriptor because of parent or superclass emitters ref that may be identical. In that case, a call
-                // to manage() on another thread during referenceEmitter() may cause two different emitters to be restored
-                // whereas we would expect the same ref.
-                if ((mReferenceCounter++) == 0) {
-                    for (EmitterDescriptor lEmitterDescriptor : mEmitterDescriptors) {
-                        if (!lEmitterDescriptor.reference(mCallback) && pRollbackOnFailure) {
-                            // Rollback modifications in case of failure.
-                            --mReferenceCounter;
-                            for (EmitterDescriptor lRolledEmitterDescriptor : mEmitterDescriptors) {
-                                if (lRolledEmitterDescriptor == lEmitterDescriptor) break;
-                                lRolledEmitterDescriptor.dereference(mCallback);
-                            }
-                            return false;
-                        }
-                    }
-                }
-            }
-            // Note: Rollback any modifications if an exception occurs. Having an exception here denotes an internal bug.
-            catch (LeakException eLeakManagerAndroidException) {
-                --mReferenceCounter;
-                // Note that if referencing failed at some point, dereferencing is likely to fail too. That's not a big
-                // issue since an exception will be thrown in both cases anyway.
-                for (EmitterDescriptor lRolledEmitterDescriptor : mEmitterDescriptors) {
-                    lRolledEmitterDescriptor.dereference(mCallback);
-                }
-                throw eLeakManagerAndroidException;
-            } finally {
-                mLock.unlock();
-            }
-        }
-        return true;
-    }
-
-    /**
-     * Remove emitter references from the task handler. Called after each task handler is executed to avoid memory leaks.
-     */
-    public void dereferenceEmitter() {
-        // Try to dereference emitters in parent containers first.
-        if (mParentDescriptors != null) {
-            for (CallbackDescriptor lParentDescriptor : mParentDescriptors) {
-                lParentDescriptor.dereferenceEmitter();
-            }
-        }
-
-        if (mEmitterDescriptors != null) {
-            mLock.lock();
-            try {
-                // Note: No need to rollback modifications if an exception occur. Leave references as is, thus creating a
-                // memory leak. We can't do much about it since having an exception here denotes an internal bug.
-                if ((--mReferenceCounter) == 0) {
-                    for (EmitterDescriptor lEmitterDescriptor : mEmitterDescriptors) {
-                        lEmitterDescriptor.dereference(mCallback);
-                    }
-                }
-            } finally {
-                mLock.unlock();
-            }
-        }
-    }
-
-
-    public interface Resolver {
-        EmitterRef resolveEmitterRef(Object pEmitter);
-
-        CallbackDescriptor resolveDescriptor(Field pField, Object pEmitter);
     }
 }

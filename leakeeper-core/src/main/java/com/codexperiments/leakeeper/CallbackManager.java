@@ -7,122 +7,104 @@ import com.codexperiments.leakeeper.config.factory.LockFactory;
 import com.codexperiments.leakeeper.config.factory.MultiThreadLockFactory;
 import com.codexperiments.leakeeper.config.factory.SingleThreadLockFactory;
 import com.codexperiments.leakeeper.config.resolver.EmitterResolver;
-import com.codexperiments.leakeeper.internal.CallbackDescriptor;
+import com.codexperiments.leakeeper.internal.AutoCleanMap;
 import com.codexperiments.leakeeper.internal.EmitterId;
 import com.codexperiments.leakeeper.internal.EmitterRef;
-import com.codexperiments.leakeeper.internal.AutoCleanMap;
 
 import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 
-import static com.codexperiments.leakeeper.LeakException.*;
+import static com.codexperiments.leakeeper.CallbackException.*;
 
 /**
  * Terminology:
- *
- * <ul>
- * <li>Emitter: A task emitter is, in Java terms, an outer class object that requests a task to execute. Thus, a task can have
- * emitters only if it is an inner, local or anonymous class. It's important to note that an object can have one or several
+ * <p/>
+ * <ul> <li>Emitter: A task emitter is, in Java terms, an outer class object that requests a task to execute. Thus, a task can
+ * have emitters only if it is an inner, local or anonymous class. It's important to note that an object can have one or several
  * emitters since this is allowed by the Java language (an inner class can keep reference to several enclosing class).</li>
  * <li>Dereferencing: An inner class task keeps references to its emitters. These references must be removed temporarily during
  * processing to avoid possible memory leaks (e.g. if a task references an activity that gets destroyed during processing).</li>
  * <li>Referencing: References to emitters must be restored to execute task handlers (onFinish(), onFail(), onProgress()) or else,
  * the task would be unable to communicate with the outside world since it has be dereferenced. Referencing is possible only if
- * all the necessary emitters, managed by the LeakManager, are still reachable. If not, task handlers cannot be executed until all
- * are reachable (and if configuration requires to keep results on hold).</li>
- * </ul>
- *
+ * all the necessary emitters, managed by the CallbackManager, are still reachable. If not, task handlers cannot be executed until all
+ * are reachable (and if configuration requires to keep results on hold).</li> </ul>
+ * <p/>
  * <b>The problem:</b>
- *
+ * <p/>
  * There are many ways to handle asynchronous tasks in Android to load data or perform some background processing. Several ways to
- * handle this exist, among which:
- * <ul>
- * <li>AsyncTasks: One of the most efficient ways to write asynchronous tasks but also to make mistakes. Can be used as such
- * mainly for short-lived tasks (or by using WeakReferences).</li>
- * <li>Services or IntentServices (with Receivers): Probably the most flexible and safest way to handle asynchronous tasks, but
- * requires some boilerplate "plumbing"</li>
- * <li>Loaders: which are tied to the activity life-cycle and also a bit difficult to write when handling all the specific cases
- * that may occur (Loader reseted, etc.). They require less plumbing but still some.</li>
+ * handle this exist, among which: <ul> <li>AsyncTasks: One of the most efficient ways to write asynchronous tasks but also to
+ * make mistakes. Can be used as such mainly for short-lived tasks (or by using WeakReferences).</li> <li>Services or
+ * IntentServices (with Receivers): Probably the most flexible and safest way to handle asynchronous tasks, but requires some
+ * boilerplate "plumbing"</li> <li>Loaders: which are tied to the activity life-cycle and also a bit difficult to write when
+ * handling all the specific cases that may occur (Loader reseted, etc.). They require less plumbing but still some.</li>
  * <li>Content Providers: which are just nice to use to create a remote data source. Cumbersome and annoying to write for any
- * other use... And they are not inherently threaded anyway.</li>
- * <li>...</li>
- * </ul>
- * Each technique has its drawbacks. The most practical way, AsyncTasks, can easily cause memory leaks which occur especially with
- * inner classes which keep a reference to the outer object. A typical example is an Activity referenced from an inner AsyncTask:
- * when the Activity is destroyed because of a configuration change (e.g. screen rotation) or because user leave the Activity
- * (e.g. with Home button), then the executing AsyncTask still references its containing Activity which cannot be garbage
- * collected. Even worse, accessing the emitting Activity after AsyncTask is over may cause either no result at all or exceptions,
- * because a new version of the Activity may have been created in-between and the older one is not displayed any more or has freed
- * some resources.
- *
+ * other use... And they are not inherently threaded anyway.</li> <li>...</li> </ul> Each technique has its drawbacks. The most
+ * practical way, AsyncTasks, can easily cause memory leaks which occur especially with inner classes which keep a reference to
+ * the outer object. A typical example is an Activity referenced from an inner AsyncTask: when the Activity is destroyed because
+ * of a configuration change (e.g. screen rotation) or because user leave the Activity (e.g. with Home button), then the executing
+ * AsyncTask still references its containing Activity which cannot be garbage collected. Even worse, accessing the emitting
+ * Activity after AsyncTask is over may cause either no result at all or exceptions, because a new version of the Activity may
+ * have been created in-between and the older one is not displayed any more or has freed some resources.
+ * <p/>
  * <b>How it works:</b>
- *
+ * <p/>
  * As soon as a task is enqueued in execute(), all its emitters are dereferenced to avoid any possible memory leaks during
  * processing (in Task.onProcess()). In other words, any emitters (i.e. outer class references) are replaced with null. This means
- * that your Task:
- * <ul>
- * <li>Can execute safely without memory leaks. Activity or any other emitter can still be garbage collected.</li>
- * <li><b>CANNOT access outer emitters (again, any outer class reference) from the onProcess method() or must use a static
- * Task!</b> That's price to pay for this memory safety... Use allowInnerTasks() in Configuration object to forbid the use of
- * inner tasks.</li>
- * <li><b>Any member variables need by a Task must be copied in Task constructor.</b> That way, the Task can work safely in a
- * closed environment without the interference of other threads. Indeed, don't share any variable between onProcess() and any
- * other threads, UI-Thread included, as this could lead to unpredictable result (because of Thread caching or instruction
- * reordering) unless some synchronization is performed (which can lead to bottleneck or a dead lock in extreme case if not
- * appropriately handled).</li>
- * </ul>
- *
- * Before, during or after processing, several handlers (i.e. callbacks) can be called:
- * <ul>
- * <li>onStart()</li>
- * <li>onProgress()</li>
- * <li>onFinish()</li>
- * <li>onFail()</li>
- * </ul>
- * Right before and after these handlers are invoked, emitters are respectively referenced and dereferenced to allow accessing the
- * outer class. If outer class is not available (e.g. if Activity has been destroyed but not recreated yet).
- *
+ * that your Task: <ul> <li>Can execute safely without memory leaks. Activity or any other emitter can still be garbage
+ * collected.</li> <li><b>CANNOT access outer emitters (again, any outer class reference) from the onProcess method() or must use
+ * a static Task!</b> That's price to pay for this memory safety... Use allowInnerTasks() in Configuration object to forbid the
+ * use of inner tasks.</li> <li><b>Any member variables need by a Task must be copied in Task constructor.</b> That way, the Task
+ * can work safely in a closed environment without the interference of other threads. Indeed, don't share any variable between
+ * onProcess() and any other threads, UI-Thread included, as this could lead to unpredictable result (because of Thread caching or
+ * instruction reordering) unless some synchronization is performed (which can lead to bottleneck or a dead lock in extreme case
+ * if not appropriately handled).</li> </ul>
+ * <p/>
+ * Before, during or after processing, several handlers (i.e. callbacks) can be called: <ul> <li>onStart()</li>
+ * <li>onProgress()</li> <li>onFinish()</li> <li>onFail()</li> </ul> Right before and after these handlers are invoked, emitters
+ * are respectively referenced and dereferenced to allow accessing the outer class. If outer class is not available (e.g. if
+ * Activity has been destroyed but not recreated yet).
+ * <p/>
  * TODO Rename manage => manageEmitter and wrap => wrapCallback?
- *
+ * <p/>
  * TODO Remove TaskId but create a TaskEquality helper class.
- * 
+ * <p/>
  * TODO Handle cancellation.
- * 
+ * <p/>
  * TODO onBeforeProcess / onRestore / onCommit
- * 
+ * <p/>
  * TODO Save TaskRefs list.
- * 
+ * <p/>
  * TODO TaskRef add a Tag
- * 
+ * <p/>
  * TODO pending(TaskType)
- *
+ * <p/>
  * TODO Rebind
  */
-public class LeakManager<TCallback> implements CallbackDescriptor.Resolver {
+public class CallbackManager<TCallback> {
     private static final int DEFAULT_CAPACITY = 64;
 
-    public static <TCallback> LeakManager<TCallback> singleThreaded(Class<TCallback> pCallbackClass, EmitterResolver pEmitterResolver) {
-        Set<LeakContainer> containers = new HashSet<>(DEFAULT_CAPACITY);
+    public static <TCallback> CallbackManager<TCallback> singleThreaded(Class<TCallback> pCallbackClass, EmitterResolver pEmitterResolver) {
+        Set<CallbackDescriptor<TCallback>> containers = new HashSet<>(DEFAULT_CAPACITY);
         Map<EmitterId, EmitterRef> emitters = new HashMap<>(DEFAULT_CAPACITY);
-        Map<TCallback, CallbackDescriptor> descriptors = new AutoCleanMap<>(DEFAULT_CAPACITY);
+        Map<TCallback, CallbackDescriptor<TCallback>> descriptors = new AutoCleanMap<>(DEFAULT_CAPACITY);
         LockFactory lockFactory = new SingleThreadLockFactory();
 
         boolean android = true;
         ThreadEnforcer threadEnforcer = android ? new AndroidUIThreadEnforcer() : new NoThreadEnforcer();
 
-        return new LeakManager<>(pCallbackClass, lockFactory, threadEnforcer, pEmitterResolver, containers, emitters, descriptors);
+        return new CallbackManager<>(pCallbackClass, lockFactory, threadEnforcer, pEmitterResolver, containers, emitters, descriptors);
     }
 
-    public static <TCallback> LeakManager<TCallback> multiThreaded(Class<TCallback> pCallbackClass, EmitterResolver pEmitterResolver) {
-        Set<LeakContainer> containers = Collections.newSetFromMap(new ConcurrentHashMap<LeakContainer, Boolean>(DEFAULT_CAPACITY));
+    public static <TCallback> CallbackManager<TCallback> multiThreaded(Class<TCallback> pCallbackClass, EmitterResolver pEmitterResolver) {
+        Set<CallbackDescriptor<TCallback>> containers = Collections.newSetFromMap(new ConcurrentHashMap<CallbackDescriptor<TCallback>, Boolean>(DEFAULT_CAPACITY));
         Map<EmitterId, EmitterRef> emitters = new ConcurrentHashMap<>(DEFAULT_CAPACITY);
-        Map<TCallback, CallbackDescriptor> descriptors = new AutoCleanMap<>(DEFAULT_CAPACITY);
+        Map<TCallback, CallbackDescriptor<TCallback>> descriptors = new AutoCleanMap<>(DEFAULT_CAPACITY);
         LockFactory lockFactory = new MultiThreadLockFactory();
         ThreadEnforcer threadEnforcer = new NoThreadEnforcer();
 
-        return new LeakManager<>(pCallbackClass, lockFactory, threadEnforcer, pEmitterResolver, containers, emitters, descriptors);
+        return new CallbackManager<>(pCallbackClass, lockFactory, threadEnforcer, pEmitterResolver, containers, emitters, descriptors);
     }
 
 
@@ -132,19 +114,19 @@ public class LeakManager<TCallback> implements CallbackDescriptor.Resolver {
     private final EmitterResolver mEmitterResolver;
 
     // All the current running tasks.
-    private final Set<LeakContainer> mContainers;
+    private final Set<CallbackDescriptor<TCallback>> mContainers;
     // Keep tracks of all emitters. Note that TaskEmitterRef uses a weak reference to avoid memory leaks. This Map is never
     // cleaned and accumulates references because it assumes that any object that managed object set doesn't grow infinitely but
     // is rather limited (e.g. typically all fragments, activity and manager in an Application).
     private final Map<EmitterId, EmitterRef> mEmitters;
     // Allow getting back an existing descriptor through its handler when dealing with nested tasks. An AutoCleanMap is necessary
     // since there is no way to know when a handler are not necessary anymore.
-    /*private*/ final Map<TCallback, CallbackDescriptor> mDescriptors; // TODO Handle WeakRef removal this with a kind of counter in descriptor?
+    /*private*/ final Map<TCallback, CallbackDescriptor<TCallback>> mDescriptors; // TODO Handle WeakRef removal this with a kind of counter in descriptor?
 
 
-    protected LeakManager(Class<TCallback> pCallbackClass, LockFactory pLockFactory, ThreadEnforcer pThreadEnforcer,
-                          EmitterResolver pEmitterResolver, Set<LeakContainer> pContainers,
-                          Map<EmitterId, EmitterRef> pEmitters, Map<TCallback, CallbackDescriptor> pDescriptors) {
+    protected CallbackManager(Class<TCallback> pCallbackClass, LockFactory pLockFactory, ThreadEnforcer pThreadEnforcer,
+                              EmitterResolver pEmitterResolver, Set<CallbackDescriptor<TCallback>> pContainers,
+                              Map<EmitterId, EmitterRef> pEmitters, Map<TCallback, CallbackDescriptor<TCallback>> pDescriptors) {
         super();
 
         mCallbackClass = pCallbackClass;
@@ -171,7 +153,8 @@ public class LeakManager<TCallback> implements CallbackDescriptor.Resolver {
         EmitterId lEmitterId = new EmitterId(pEmitter.getClass(), lEmitterIdValue);
         EmitterRef lEmitterRef = mEmitters.get(lEmitterId);
         if (lEmitterRef == null) {
-            /*lEmitterRef =*/ mEmitters.put(lEmitterId, new EmitterRef(lEmitterId, pEmitter));
+            /*lEmitterRef =*/
+            mEmitters.put(lEmitterId, new EmitterRef(lEmitterId, pEmitter));
         } else {
             lEmitterRef.set(pEmitter);
         }
@@ -198,31 +181,31 @@ public class LeakManager<TCallback> implements CallbackDescriptor.Resolver {
         }
     }
 
-    public LeakContainer wrap(TCallback pCallback, Lock pLock) {
+    public CallbackDescriptor<TCallback> wrap(TCallback pCallback) {
         if (pCallback == null) throw new NullPointerException("Callback is null");
         mThreadEnforcer.enforce();
 
         // Create a container to run the task.
-        LeakContainer lContainer = new LeakContainer(pCallback, this);
-        // Save the task before running it.
+        // Prepare the task (i.e. initialize and cache needed values) after adding it because prepareToRun() is a bit
+        // expensive and should be performed only if necessary.
+        final CallbackDescriptor lDescriptor = new CallbackDescriptor(this, pCallback, mLockFactory.create());
+        // Save the descriptor so that any child task can use current descriptor as a parent.
+        mDescriptors.put(pCallback, lDescriptor);
+        // TODO Do we really need this? Save the task before running it.
         // Note that it is safe to add the task to the container since it is an empty stub that shouldn't create any side-effect.
-        if (mContainers.add(lContainer)) {
-            // Prepare the task (i.e. initialize and cache needed values) after adding it because prepareToRun() is a bit
-            // expensive and should be performed only if necessary.
-            try {
-                CallbackDescriptor callbackDescriptor = lContainer.rebind(pCallback, mLockFactory.create());
-                // Save the descriptor so that any child task can use current descriptor as a parent.
-                mDescriptors.put(pCallback, callbackDescriptor); // TODO Global lock that could lead to contention. Check for optim.
-                return lContainer;
-            }
-            // If preparation operation fails, try to leave the manager in a consistent state without memory leaks.
-            catch (RuntimeException eRuntimeException) {
-                mContainers.remove(lContainer);
-                throw eRuntimeException;
-            }
-        }
-        // If an identical task is already executing, do nothing.
-        else return null;
+        mContainers.add(lDescriptor);
+        return lDescriptor;
+    }
+
+    /**
+     * Called when task is processed and finished to clean remaining references.
+     *
+     * @param pContainer Finished task container.
+     */
+    @SuppressWarnings("SuspiciousMethodCalls")
+    public void unwrap(CallbackDescriptor<TCallback> pContainer) {
+        // Note that the removed container might still be referenced from a child container.
+        mContainers.remove(pContainer);
     }
 
     /**
@@ -232,8 +215,7 @@ public class LeakManager<TCallback> implements CallbackDescriptor.Resolver {
      * @param pEmitter Emitter to find the reference of.
      * @return Emitter reference. No null is returned.
      */
-    @Override
-    public EmitterRef resolveEmitterRef(Object pEmitter) {
+    EmitterRef resolveEmitter(Object pEmitter) {
         // Save the new emitter in the reference list. Replace the existing one, if any, according to its id (the old one is
         // considered obsolete). Emitter Id is computed by the configuration strategy. Note that an emitter Id can be null if no
         // dereferencing should be performed.
@@ -262,23 +244,12 @@ public class LeakManager<TCallback> implements CallbackDescriptor.Resolver {
         return lEmitterRef;
     }
 
-    @Override
-    public CallbackDescriptor resolveDescriptor(Field pField, Object pEmitter) {
+    CallbackDescriptor resolveDescriptor(Field pField, Object pEmitter) {
         if (!mCallbackClass.isAssignableFrom(pField.getType())) return null;
 
         @SuppressWarnings("SuspiciousMethodCalls")
         CallbackDescriptor lDescriptor = mDescriptors.get(pEmitter);
         if (lDescriptor != null) return lDescriptor;
         else throw taskExecutedFromUnexecutedTask(pEmitter);
-    }
-
-    /**
-     * Called when task is processed and finished to clean remaining references.
-     *
-     * @param pContainer Finished task container.
-     */
-    @SuppressWarnings("SuspiciousMethodCalls")
-    public void unwrap(LeakContainer pContainer) {
-        mContainers.remove(pContainer);
     }
 }

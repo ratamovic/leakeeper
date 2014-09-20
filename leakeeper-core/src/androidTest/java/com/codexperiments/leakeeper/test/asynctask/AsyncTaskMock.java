@@ -4,8 +4,8 @@ import android.annotation.TargetApi;
 import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Looper;
-import com.codexperiments.leakeeper.LeakContainer;
-import com.codexperiments.leakeeper.LeakManager;
+import com.codexperiments.leakeeper.CallbackDescriptor;
+import com.codexperiments.leakeeper.CallbackManager;
 
 import java.util.concurrent.*;
 
@@ -17,17 +17,18 @@ import static org.junit.Assert.fail;
 public abstract class AsyncTaskMock extends AsyncTask<Double, Integer, String> {
     private static final int MAX_WAIT_TIME = 10;
 
-    // Dependencies
-    protected static LeakManager sLeakManager;
+    // Callback management
+    private final CallbackManager mCallbackManager;
+    private CallbackDescriptor<AsyncTaskMock> mCallbackDescriptor = null;
     // Internal state
-    private LeakContainer mContainer = null;
     private final CyclicBarrier mStepBarrier;
-    private boolean mRequestStop = false, mStop = false;
+    private boolean mRequestStop = false;
+    private boolean mStop = false;
     private final CountDownLatch mFinishedLatch = new CountDownLatch(1);
     private String mResult = null;
 
-    AsyncTaskMock(LeakManager pLeakManager) {
-        sLeakManager = pLeakManager;
+    AsyncTaskMock(CallbackManager pCallbackManager) {
+        mCallbackManager = pCallbackManager;
         mStepBarrier = new CyclicBarrier(2, new Runnable() {
             @Override
             public void run() {
@@ -107,17 +108,17 @@ public abstract class AsyncTaskMock extends AsyncTask<Double, Integer, String> {
 
     @Override
     protected final void onPreExecute() {
-        mContainer = sLeakManager.wrap(this, null);
+        mCallbackDescriptor = mCallbackManager.wrap(this);
     }
 
     @Override
     protected final void onPostExecute(String result) {
-        mContainer.unguard();
+        mCallbackDescriptor.referenceEmitter(false);
 
         // Saves result.
         mResult = result;
         onSaveResult(result);
-        mContainer.guard();
+        mCallbackDescriptor.dereferenceEmitter();
         mFinishedLatch.countDown();
     }
 

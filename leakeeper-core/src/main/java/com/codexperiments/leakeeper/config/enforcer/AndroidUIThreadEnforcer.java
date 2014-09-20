@@ -1,7 +1,7 @@
 package com.codexperiments.leakeeper.config.enforcer;
 
 import android.os.Looper;
-import com.codexperiments.leakeeper.LeakException;
+import com.codexperiments.leakeeper.CallbackException;
 
 public class AndroidUIThreadEnforcer implements ThreadEnforcer {
     private final Looper mUILooper = Looper.getMainLooper();
@@ -9,7 +9,7 @@ public class AndroidUIThreadEnforcer implements ThreadEnforcer {
     @Override
     public void enforce() {
         if (Looper.myLooper() != mUILooper) {
-            throw new LeakException("Must be executed from the UI-Thread only.");
+            throw new CallbackException("Must be executed from the UI-Thread only.");
         }
     }
 }

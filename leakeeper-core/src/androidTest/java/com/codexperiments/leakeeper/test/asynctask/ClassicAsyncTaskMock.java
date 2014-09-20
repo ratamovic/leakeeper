@@ -1,14 +1,14 @@
 package com.codexperiments.leakeeper.test.asynctask;
 
-import com.codexperiments.leakeeper.LeakManager;
+import com.codexperiments.leakeeper.CallbackManager;
 
 import java.lang.ref.WeakReference;
 
 class ClassicAsyncTaskMock extends AsyncTaskMock {
     private WeakReference<AsyncTaskActivityMock> mActivityRef;
 
-    ClassicAsyncTaskMock(LeakManager pLeakManager, AsyncTaskActivityMock pActivity) {
-        super(pLeakManager);
+    ClassicAsyncTaskMock(CallbackManager pCallbackManager, AsyncTaskActivityMock pActivity) {
+        super(pCallbackManager);
         mActivityRef = new WeakReference<>(pActivity);
     }
 

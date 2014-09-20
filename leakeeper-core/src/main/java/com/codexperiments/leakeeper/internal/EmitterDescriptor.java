@@ -2,7 +2,7 @@ package com.codexperiments.leakeeper.internal;
 
 import java.lang.reflect.Field;
 
-import static com.codexperiments.leakeeper.LeakException.internalError;
+import static com.codexperiments.leakeeper.CallbackException.internalError;
 
 /**
  * Contains all the information necessary to restore a single emitter on a task handler (its field and its generated Id).
