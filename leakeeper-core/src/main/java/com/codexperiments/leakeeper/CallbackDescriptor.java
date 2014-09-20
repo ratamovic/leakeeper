@@ -19,7 +19,7 @@ import static com.codexperiments.leakeeper.CallbackException.internalError;
  * referencing and dereferencing).
  */
 public final class CallbackDescriptor<TCallback> {
-    private final CallbackManager mManager;
+    private final CallbackManager<TCallback> mManager;
     private final Object mCallback;
     private List<EmitterDescriptor> mEmitterDescriptors; // Never modified once initialized in prepareDescriptor().
     private List<CallbackDescriptor<TCallback>> mParentDescriptors; // Never modified once initialized in prepareDescriptor().
@@ -31,7 +31,7 @@ public final class CallbackDescriptor<TCallback> {
     private final Lock mLock;
 
     // TODO Boolean option to indicate if we should look for emitter or if task is not "managed".
-    public CallbackDescriptor(CallbackManager pManager, Object pCallback, Lock pLock) {
+    public CallbackDescriptor(CallbackManager<TCallback> pManager, Object pCallback, Lock pLock) {
         mManager = pManager;
         mCallback = pCallback;
         mEmitterDescriptors = null;

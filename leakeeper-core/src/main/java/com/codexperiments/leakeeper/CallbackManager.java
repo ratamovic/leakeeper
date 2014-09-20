@@ -1,6 +1,5 @@
 package com.codexperiments.leakeeper;
 
-import com.codexperiments.leakeeper.config.enforcer.AndroidUIThreadEnforcer;
 import com.codexperiments.leakeeper.config.enforcer.NoThreadEnforcer;
 import com.codexperiments.leakeeper.config.enforcer.ThreadEnforcer;
 import com.codexperiments.leakeeper.config.factory.LockFactory;
@@ -14,7 +13,6 @@ import com.codexperiments.leakeeper.internal.EmitterRef;
 import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.locks.Lock;
 
 import static com.codexperiments.leakeeper.CallbackException.*;
 
@@ -88,11 +86,11 @@ public class CallbackManager<TCallback> {
     public static <TCallback> CallbackManager<TCallback> singleThreaded(Class<TCallback> pCallbackClass, EmitterResolver pEmitterResolver) {
         Set<CallbackDescriptor<TCallback>> containers = new HashSet<>(DEFAULT_CAPACITY);
         Map<EmitterId, EmitterRef> emitters = new HashMap<>(DEFAULT_CAPACITY);
-        Map<TCallback, CallbackDescriptor<TCallback>> descriptors = new AutoCleanMap<>(DEFAULT_CAPACITY);
+        Map<TCallback, CallbackDescriptor<TCallback>> descriptors = AutoCleanMap.create(DEFAULT_CAPACITY);
         LockFactory lockFactory = new SingleThreadLockFactory();
 
-        boolean android = true;
-        ThreadEnforcer threadEnforcer = android ? new AndroidUIThreadEnforcer() : new NoThreadEnforcer();
+        // TODO boolean android = true; android ? new AndroidUIThreadEnforcer() :
+        ThreadEnforcer threadEnforcer = new NoThreadEnforcer();
 
         return new CallbackManager<>(pCallbackClass, lockFactory, threadEnforcer, pEmitterResolver, containers, emitters, descriptors);
     }
@@ -100,7 +98,7 @@ public class CallbackManager<TCallback> {
     public static <TCallback> CallbackManager<TCallback> multiThreaded(Class<TCallback> pCallbackClass, EmitterResolver pEmitterResolver) {
         Set<CallbackDescriptor<TCallback>> containers = Collections.newSetFromMap(new ConcurrentHashMap<CallbackDescriptor<TCallback>, Boolean>(DEFAULT_CAPACITY));
         Map<EmitterId, EmitterRef> emitters = new ConcurrentHashMap<>(DEFAULT_CAPACITY);
-        Map<TCallback, CallbackDescriptor<TCallback>> descriptors = new AutoCleanMap<>(DEFAULT_CAPACITY);
+        Map<TCallback, CallbackDescriptor<TCallback>> descriptors = AutoCleanMap.create(DEFAULT_CAPACITY);
         LockFactory lockFactory = new MultiThreadLockFactory();
         ThreadEnforcer threadEnforcer = new NoThreadEnforcer();
 
@@ -185,7 +183,7 @@ public class CallbackManager<TCallback> {
         // Create a container to run the task.
         // Prepare the task (i.e. initialize and cache needed values) after adding it because prepareToRun() is a bit
         // expensive and should be performed only if necessary.
-        final CallbackDescriptor lDescriptor = new CallbackDescriptor(this, pCallback, mLockFactory.create());
+        final CallbackDescriptor<TCallback> lDescriptor = new CallbackDescriptor<TCallback>(this, pCallback, mLockFactory.create());
         // Save the descriptor so that any child task can use current descriptor as a parent.
         mDescriptors.put(pCallback, lDescriptor);
         return lDescriptor;
@@ -227,11 +225,11 @@ public class CallbackManager<TCallback> {
         return lEmitterRef;
     }
 
-    CallbackDescriptor resolveDescriptor(Field pField, Object pEmitter) {
+    CallbackDescriptor<TCallback> resolveDescriptor(Field pField, Object pEmitter) {
         if (!mCallbackClass.isAssignableFrom(pField.getType())) return null;
 
         @SuppressWarnings("SuspiciousMethodCalls")
-        CallbackDescriptor lDescriptor = mDescriptors.get(pEmitter);
+        CallbackDescriptor<TCallback> lDescriptor = mDescriptors.get(pEmitter);
         if (lDescriptor != null) return lDescriptor;
         else throw taskExecutedFromUnexecutedTask(pEmitter);
     }

@@ -1,1 +1,1 @@
-include ':leakeeper-core'
+include ':leakeeper-core', ':leakeeper-android'

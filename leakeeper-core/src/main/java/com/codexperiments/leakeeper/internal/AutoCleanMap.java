@@ -1,6 +1,8 @@
 package com.codexperiments.leakeeper.internal;
 
-import android.os.Process;
+//import android.annotation.TargetApi;
+//import android.os.Build;
+//import android.os.Process;
 
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
@@ -16,33 +18,38 @@ public class AutoCleanMap<TKey, TValue> extends AbstractMap<TKey, TValue> {
     private ConcurrentHashMap<WeakKey<TKey>, WeakValue<TValue>> mMap;
     private ReferenceQueue<TKey> mQueue;
 
-    public AutoCleanMap(int pCapacity) {
+    public static <TKey, TValue> AutoCleanMap<TKey, TValue> create(int pCapacity) {
+        AutoCleanMap<TKey, TValue> autoCleanMap = new AutoCleanMap<>(pCapacity);
+        autoCleanMap.startCleaning();
+        return autoCleanMap;
+    }
+
+    protected AutoCleanMap(int pCapacity) {
         mMap = new ConcurrentHashMap<WeakKey<TKey>, WeakValue<TValue>>(pCapacity);
         mQueue = new ReferenceQueue<TKey>();
-
-        startCleanup();
     }
 
-    public AutoCleanMap() {
-        this(16);
-    }
-
-    private void startCleanup() {
-        new Thread(new Runnable() {
+    protected void startCleaning() {
+        Thread thread = new Thread(new Runnable() {
             @SuppressWarnings("unchecked")
             public void run() {
-                // TODO Set background
-                Process.setThreadPriority(Process.THREAD_PRIORITY_LOWEST);
-                while (true) {
-                    try {
-                        WeakKey<TKey> lWeakKey = (WeakKey<TKey>) mQueue.remove();
-                        mMap.remove(lWeakKey);
-                    } catch (InterruptedException eInterruptedException) {
-                        // Ignore and retry.
-                    }
-                }
+                doClean();
             }
-        }).start();
+        });
+        thread.setPriority(Thread.MIN_PRIORITY);
+        thread.setDaemon(true);
+        thread.start();
+    }
+
+    protected void doClean() {
+        while (true) {
+            try {
+                WeakKey<TKey> lWeakKey = (WeakKey<TKey>) mQueue.remove();
+                mMap.remove(lWeakKey);
+            } catch (InterruptedException eInterruptedException) {
+                // Ignore and retry.
+            }
+        }
     }
 
     @Override
@@ -59,6 +66,7 @@ public class AutoCleanMap<TKey, TValue> extends AbstractMap<TKey, TValue> {
     }
 
     @Override
+    //@TargetApi(Build.VERSION_CODES.GINGERBREAD)
     public Set<Entry<TKey, TValue>> entrySet() {
         Set<Entry<TKey, TValue>> entrySet = new java.util.HashSet<>();
         for (Entry<WeakKey<TKey>, WeakValue<TValue>> entry : mMap.entrySet()) {
