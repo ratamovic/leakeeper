@@ -19,6 +19,7 @@ import static org.junit.Assert.assertThat;
  * Base test class with some facilities to initialize and manipulate activities.
  */
 public class TestCase<TActivity extends TestActivity> extends ActivityInstrumentationTestCase2<TActivity> {
+    public static int MAX_WAIT_TIME = 100000;
     private static TestCase<?> sInstance;
 
     private volatile TActivity mCurrentActivity;

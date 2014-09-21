@@ -6,17 +6,17 @@ import android.os.Handler;
 import android.os.Looper;
 import com.codexperiments.leakeeper.CallbackContainer;
 import com.codexperiments.leakeeper.CallbackManager;
+import com.codexperiments.leakeeper.test.common.TestCase;
 
 import java.util.concurrent.*;
 
+import static com.codexperiments.leakeeper.test.common.TestCase.MAX_WAIT_TIME;
 import static org.junit.Assert.fail;
 
 /**
  * Base AsyncTask class that transforms an input double value into an output string.
  */
 public abstract class AsyncTaskMock extends AsyncTask<Double, Integer, String> {
-    private static final int MAX_WAIT_TIME = 10;
-
     // Callback management
     private final CallbackManager<AsyncTaskMock> mCallbackManager;
     private CallbackContainer<AsyncTaskMock> mCallbackContainer = null;

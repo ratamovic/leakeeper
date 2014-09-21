@@ -5,6 +5,8 @@ import android.app.Activity;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import static com.codexperiments.leakeeper.test.common.TestCase.MAX_WAIT_TIME;
+
 /**
  * Base Activity that can be manipulated by a TestCase.
  */
@@ -26,7 +28,7 @@ public abstract class TestActivity extends Activity {
 
     public boolean waitStarted() {
         try {
-            return mStartedLatch.await(10, TimeUnit.SECONDS);
+            return mStartedLatch.await(MAX_WAIT_TIME, TimeUnit.SECONDS);
         } catch (InterruptedException interruptedException) {
             throw new RuntimeException(interruptedException);
         }
@@ -34,7 +36,7 @@ public abstract class TestActivity extends Activity {
 
     public boolean waitTerminated() {
         try {
-            return mDestroyedLatch.await(10, TimeUnit.SECONDS);
+            return mDestroyedLatch.await(MAX_WAIT_TIME, TimeUnit.SECONDS);
         } catch (InterruptedException interruptedException) {
             throw new RuntimeException(interruptedException);
         }

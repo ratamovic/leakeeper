@@ -38,11 +38,12 @@ android {
 
 dependencies {
     provided 'com.android.support:support-v4:19.+'
+    compile 'com.netflix.rxjava:rxjava-core:0.20.4'
+    compile 'com.netflix.rxjava:rxjava-android:0.20.4'
     androidTestCompile 'com.android.support:support-v4:19.+'
     androidTestCompile 'junit:junit:4.11'
     androidTestCompile 'org.hamcrest:hamcrest-library:1.3'
     androidTestCompile 'com.google.dexmaker:dexmaker-mockito:1.1'
-    androidTestCompile 'com.jayway.awaitility:awaitility:1.6.1'
 
     compile project(':leakeeper-core')
     compile fileTree(dir: 'libs', include: ['*.jar'])

@@ -40,15 +40,15 @@ public class AsyncTaskActivityMock extends TestActivity {
     }
 
     @Override
-    protected void onStop() {
-        super.onStop();
-        if (mManaged) mCallbackManager.unmanage(this);
-    }
-
-    @Override
     protected void onStart() {
         if (mManaged) mCallbackManager.manage(this);
         super.onStart();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if (mManaged) mCallbackManager.unmanage(this);
     }
     //endregion
 
